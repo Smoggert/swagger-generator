@@ -19,11 +19,18 @@ You can place this in require-dev and just run the command during deploy/dev. No
         "smoggert/swagger-generator": "@dev"
     }
 ```
+## Configuration
+The script currently works on an include route X basis.
+If you want to specify which routes you'd like to include, (among other things), I highly recommend publishing the configuration file and adjusting it.
+
+```bash
+  php artisan vendor:publish --tag=config
+```
 
 ## Usage
 Available in json & yaml format, default to yaml.
 
-```python
+```bash
   php artisan swagger:generate --format=json
 ```
 
