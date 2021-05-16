@@ -1,0 +1,29 @@
+{
+    "name": "smoggert/swagger-generator",
+    "description": "Generates swagger documentation based on your laravel API.",
+    "keywords": ["laravel","api","open-api","swagger"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Peter De Bleye",
+            "email": "peter.debleye@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "extra": {
+        "laravel":{
+            "providers":[
+                "Smoggert\\SwaggerGenerator\\SwaggerGeneratorServiceProvider"
+            ]
+        } 
+    },
+    "autoload": {
+        "psr-4": {
+            "Smoggert\\SwaggerGenerator\\": "packages/smoggert/swagger-generator/src/"
+        }
+    },
+    "require": {
+        "php": "^7.3|^8.0",
+        "laravel/framework": "7.0|^8.0"
+    }
+}
