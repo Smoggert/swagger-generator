@@ -19,7 +19,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Smoggert\\SwaggerGenerator\\": "packages/smoggert/swagger-generator/src/"
+            "Smoggert\\SwaggerGenerator\\": "src"
         }
     },
     "require": {
