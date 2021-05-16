@@ -14,9 +14,10 @@ You can place this in require-dev and just run the command during deploy/dev. No
             "url": "https://github.com/Smoggert/swagger-generator"
         }
     ],
-    "require-dev": [
+    "require-dev": {
+        ...
         "smoggert/swagger-generator": "@dev"
-    ]
+    }
 ```
 
 ## Usage
