@@ -21,7 +21,7 @@ You can place this in require-dev and just run the command during deploy/dev. No
 ```
 
 ## Usage
-Available in json & yaml format.
+Available in json & yaml format, default to yaml.
 
 ```python
   php artisan swagger:generate --format=json
