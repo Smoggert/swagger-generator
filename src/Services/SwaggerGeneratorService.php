@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Route as RouteFacade;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
-use Smoggert\SwaggerGenerator\Models\BaseModel as Model;
+use Smoggert\SwaggerGenerator\Models\FakeModelForSwagger as Model;
 
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -57,12 +57,56 @@ class SwaggerGeneratorService
     public function __construct()
     {
         $this->routes = RouteFacade::getRoutes();
-        $this->default_responses = Config::get('swagger_gen.default_responses', [
-            '*' => [
-
+        $this->default_responses = Config::get('swagger_gen.default_responses', [        
+        'get' => [
+            '200' => [
+                'description' => 'OK'
             ]
-        ]);
-        $this->output_file_path = Config::get('swagger_gen.output',null);
+        ],
+        'post' => [
+            '200' => [
+                'description' => 'OK'
+            ],    
+            '202' => [
+            'description' => 'Action is will be executed.'
+            ],
+        ],
+        'put' => [
+            '200' => [
+                'description' => 'OK'
+            ],    
+            '202' => [
+            'description' => 'Action is will be executed.'
+            ],
+        ],
+        'patch' => [
+            '200' => [
+                'description' => 'OK'
+            ],    
+            '202' => [
+            'description' => 'Action is will be executed.'
+            ],
+        ],
+        'delete' => [
+            '204' => [
+                'description' => 'Resource deleted.'
+            ],
+        ],
+        '*' => [
+            '400' => [
+                'description' => 'Bad request.'
+            ],
+            '401' => [
+                'description' => 'Unauthorized.'
+            ],
+            '403' => [
+                'description' => 'Forbidden.'
+            ],
+            '404' => [
+                'description' => 'Route/Resource not found.'
+            ],
+        ]]);
+        $this->output_file_path = Config::get('swagger_gen.output', \storage_path('swagger.txt'));
     }
 
     public function generate(OutputInterface $output, string $format = 'yaml') : int
@@ -91,7 +135,9 @@ class SwaggerGeneratorService
 
     public function filterRoutes() : void
     {
-        $allowed_routes = Config::get('swagger_gen.allowed', []);
+        $allowed_routes = Config::get('swagger_gen.allowed', [
+            '/api/v1'
+        ]);
 
         $this->filtered_routes = new Collection();
 

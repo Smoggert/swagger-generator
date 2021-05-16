@@ -2,7 +2,7 @@
 
 return [
     'allowed' => [
-        'api/v1'
+        'api'
     ],
     'openapi' => "3.0.0",
 
