@@ -124,7 +124,8 @@ class SwaggerGeneratorService
         }
         return $route->uri;
     }
-    protected function printSwaggerDocUsingFormat(array $swagger_docs,string $format)
+    
+    protected function printSwaggerDocsUsingFormat(array $swagger_docs,string $format)
     {
         if($format === 'yaml')
         {
