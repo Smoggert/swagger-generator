@@ -14,7 +14,6 @@ class SwaggerGeneratorServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //$this->app->make("smoggert\swagger-generator\SwaggerGeneratorService");
     }
 
     /**
@@ -24,7 +23,6 @@ class SwaggerGeneratorServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        dd('ttetten');
         $this->publishes([
             __DIR__.'/config/swagger_gen.php' => \config_path('swagger_gen.php')
         ], 'config');
