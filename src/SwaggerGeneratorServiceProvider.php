@@ -14,6 +14,9 @@ class SwaggerGeneratorServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        $this->mergeConfigFrom(
+            __DIR__.'/config/swagger_gen.php', 'swagger_gen'
+        );
     }
 
     /**

@@ -57,56 +57,8 @@ class SwaggerGeneratorService
     public function __construct()
     {
         $this->routes = RouteFacade::getRoutes();
-        $this->default_responses = Config::get('swagger_gen.default_responses', [        
-        'get' => [
-            '200' => [
-                'description' => 'OK'
-            ]
-        ],
-        'post' => [
-            '200' => [
-                'description' => 'OK'
-            ],    
-            '202' => [
-            'description' => 'Action is will be executed.'
-            ],
-        ],
-        'put' => [
-            '200' => [
-                'description' => 'OK'
-            ],    
-            '202' => [
-            'description' => 'Action is will be executed.'
-            ],
-        ],
-        'patch' => [
-            '200' => [
-                'description' => 'OK'
-            ],    
-            '202' => [
-            'description' => 'Action is will be executed.'
-            ],
-        ],
-        'delete' => [
-            '204' => [
-                'description' => 'Resource deleted.'
-            ],
-        ],
-        '*' => [
-            '400' => [
-                'description' => 'Bad request.'
-            ],
-            '401' => [
-                'description' => 'Unauthorized.'
-            ],
-            '403' => [
-                'description' => 'Forbidden.'
-            ],
-            '404' => [
-                'description' => 'Route/Resource not found.'
-            ],
-        ]]);
-        $this->output_file_path = Config::get('swagger_gen.output', \storage_path('swagger.txt'));
+        $this->default_responses = Config::get('swagger_gen.default_responses');
+        $this->output_file_path = Config::get('swagger_gen.output');
     }
 
     public function generate(OutputInterface $output, string $format = 'yaml') : int
@@ -135,9 +87,7 @@ class SwaggerGeneratorService
 
     public function filterRoutes() : void
     {
-        $allowed_routes = Config::get('swagger_gen.allowed', [
-            '/api/v1'
-        ]);
+        $allowed_routes = Config::get('swagger_gen.allowed');
 
         $this->filtered_routes = new Collection();
 
@@ -384,6 +334,8 @@ class SwaggerGeneratorService
 
         $reflection = !$type->isBuiltin() ? new \ReflectionClass($type->getName()) : null;
 
+        $resource_name = $reflection ? $this->trimResourcePath($type->getName()) : '204';
+
         if($this->responseClassIsJsonResource($reflection))
         {
             if($this->responseClassIsResourceCollection($reflection))
@@ -394,7 +346,7 @@ class SwaggerGeneratorService
                 $parameters = $reflection->newInstance(new Model())->toArray(request());
             }
 
-            $resource_name = $reflection ? $this->trimResourcePath($type->getName()) : '204';
+            
             if(! isset($this->components[$resource_name]))
             {
                 $component = [
@@ -585,25 +537,16 @@ class SwaggerGeneratorService
     }
     protected function addServers(&$swagger_docs) : void
     {
-        $swagger_docs['servers'] = Config::get('swagger_gen.servers', [
-            [
-                'url' => Config::get('app.url'),
-                'description' => Config::get('app.name')
-            ],
-        ]);
+        $swagger_docs['servers'] = Config::get('swagger_gen.servers');
     }
 
     protected function addVersion(&$object) : void
     {
-        $object['openapi'] = Config::get('swagger_gen.openapi', "3.0.0");
+        $object['openapi'] = Config::get('swagger_gen.openapi');
     }
 
     protected function addInfo(&$object): void
     {
-        $object['info'] = Config::get('swagger_gen.info', [
-            'title' => "API",
-            'description' => 'Optional description',
-            'version' => "0.0",
-        ]);
+        $object['info'] = Config::get('swagger_gen.info');
     }
 }
