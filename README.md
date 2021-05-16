@@ -15,7 +15,7 @@ You can place this in require-dev and just run the command during deploy/dev. No
         }
     ],
     "require-dev": {
-        ...
+        
         "smoggert/swagger-generator": "@dev"
     }
 ```
