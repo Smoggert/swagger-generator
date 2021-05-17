@@ -329,10 +329,10 @@ class SwaggerGeneratorService
         return $this->wrapString('#/components/schemas/'.$requestName);
     }
     
-    protected function createResponseBodyFromJsonResource(\ReflectionType $type) : string
+    protected function createResponseBodyFromJsonResource(?\ReflectionType $type) : string
     {
 
-        $reflection = !$type->isBuiltin() ? new \ReflectionClass($type->getName()) : null;
+        $reflection = (isset(type) && !$type->isBuiltin()) ? new \ReflectionClass($type->getName()) : null;
 
         $resource_name = $reflection ? $this->trimResourcePath($type->getName()) : '204';
 
