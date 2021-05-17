@@ -36,7 +36,7 @@ Available in json & yaml format, default to yaml.
 
 ## Contributing
 Pull requests are currently not welcome. 
-I'm mostly writing this so I can stop using 500 lines of phpdoc code the document our api.
+I'm mostly writing this so I can stop using 500 lines of phpdoc code to document our api.
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
