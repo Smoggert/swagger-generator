@@ -483,6 +483,7 @@ class SwaggerGeneratorService
     {
         if(! $method->hasReturnType())
         {
+            return null;
             Log::error("Return object from ".$method->name." not typed. Unable to obtain response object.");
         } else
         {
