@@ -79,12 +79,11 @@ class SwaggerGeneratorService
         $this->addInfo($swagger_file);
         $this->addServers($swagger_file);
         $this->addPaths($swagger_file);
-
+        $this->addAuthentication($swagger_file);
         $this->addComponents($swagger_file);
         $this->printSwaggerDocsUsingFormat($swagger_file, $format);
         return 0;
     }
-
     public function filterRoutes() : void
     {
         $allowed_routes = Config::get('swagger_gen.allowed');
@@ -97,6 +96,18 @@ class SwaggerGeneratorService
             {
                 if(str_contains($route->uri,$allowed_route))
                     $this->filtered_routes->push($route);
+            }
+        }
+    }
+
+    public function addAuthentication(&$swagger_docs)
+    {
+        foreach($this->filtered_routes as $route)
+        {
+            $middleware = $this->getMiddleware($route);
+            if(! empty($middleware))
+            {
+                dd($middleware);
             }
         }
     }
@@ -408,7 +419,7 @@ class SwaggerGeneratorService
 
         $parameters[] = $param;
     }
-
+    
     protected function getPropertyType($info) : string
     {
         if(is_string($info)) {
