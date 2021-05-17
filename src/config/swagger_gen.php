@@ -1,9 +1,12 @@
 <?php
 
 return [
-    'allowed' => [
-        'api'
-    ],
+    /* -----------------------------
+    *  Define the base header values of your openapi spec file
+    *  -----------------------------
+    *   These are the base parameters that provide context to the api.
+    */
+
     'openapi' => "3.0.0",
 
     'info' => [
@@ -21,6 +24,35 @@ return [
     'output' => [
         'path' => storage_path('text.txt')
     ],
+
+    /* -----------------------------
+    *  Define your allowed routes
+    *  -----------------------------
+    *   This defines the prefixes that will be required to index the routes from your application.
+    *   
+    */
+
+    'allowed' => [
+        'api'
+    ],
+
+    /* -----------------------------
+    *  Define your auth middlewares
+    *  -----------------------------
+    *   When defined this will apply the security scheme to each route where the middleware is encountered.
+    *   Supported types: basic, bearer, apiKey:<header|name>, apiKey:<request> ,openId:<url-here>
+    */
+
+    'middleware' => [
+        // App\Http\Middleware::class => 'openId:https://myapi.example.com/open-idconfig'
+    ],
+
+    /* -----------------------------
+    *  Default response types per verb
+    *  -----------------------------
+    * 
+    *   Default responses are overwritten & appended by reponses found by the generator.
+    */
 
     'default_responses' => [
         'get' => [

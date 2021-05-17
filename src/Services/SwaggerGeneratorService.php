@@ -442,10 +442,12 @@ class SwaggerGeneratorService
         }
         return $required;
     }
+
     protected function isRequestParameterRequired($parameterRule) : bool
     {
         return is_string($parameterRule) && str_contains($parameterRule,'required');
     }
+    
     protected function getResponses(Route $route, string $verb): array
     {
         $responses = [];
