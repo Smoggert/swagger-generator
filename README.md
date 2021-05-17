@@ -1,6 +1,6 @@
 # Swagger-generator
 
-Swagger-generator is a package that producer open-api 3.0.0 spec documentation based on Formrequests and JsonResources.
+Swagger-generator is a package for Laravel that produces open-api 3.0.0 spec documentation based on Form Requests and Json Resources.
 It is currently in pre-alpha or something among those lines..
 
 ## Installation
