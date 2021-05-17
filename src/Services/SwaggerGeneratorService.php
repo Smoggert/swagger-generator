@@ -479,7 +479,7 @@ class SwaggerGeneratorService
         return $this->default_responses['*'] ?? [] + $this->default_responses[$verb] ?? [];
     }
 
-    protected function getMethodReturnClass(\ReflectionMethod $method) :\ReflectionType
+    protected function getMethodReturnClass(\ReflectionMethod $method) :?\ReflectionType
     {
         if(! $method->hasReturnType())
         {
