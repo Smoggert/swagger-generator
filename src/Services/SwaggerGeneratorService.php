@@ -5,6 +5,7 @@ namespace Smoggert\SwaggerGenerator\Services;
 
 use Illuminate\Console\Command;
 use Illuminate\Routing\Route;
+use Illuminate\Routing\Router;
 
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
@@ -26,6 +27,12 @@ class SwaggerGeneratorService
      */
 
     protected $output;
+
+    /**
+     * @var Illuminate\Routing\Router $router;
+     */
+
+    protected $router;
 
     /**
      * @var Illuminate\Routing\RouteCollection $routes;
@@ -54,8 +61,9 @@ class SwaggerGeneratorService
 
     protected $output_file_path;
 
-    public function __construct()
+    public function __construct(Router $router)
     {
+        $this->router = $router;
         $this->routes = RouteFacade::getRoutes();
         $this->default_responses = Config::get('swagger_gen.default_responses');
         $this->output_file_path = Config::get('swagger_gen.output');
@@ -104,7 +112,7 @@ class SwaggerGeneratorService
     {
         foreach($this->filtered_routes as $route)
         {
-            $middleware = $this->getMiddleware($route);
+            $middleware = $this->router->gatherRouteMiddleware($route);
             if(! empty($middleware))
             {
                 dd($middleware);
@@ -531,13 +539,6 @@ class SwaggerGeneratorService
     protected function getPrefix(Route $route) : ?string
     {
        return $route->getPrefix() ?? null;
-    }
-    protected function getMiddleware(Route $route):array
-    {
-        $middleware = $route->action['middleware'] ?? null;
-        if(isset($middleware) && is_array($middleware))
-            return $middleware;
-        return [];
     }
 
     protected function generateSummary(array &$object): void
