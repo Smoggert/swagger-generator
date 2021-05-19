@@ -39,12 +39,12 @@ return [
     /* -----------------------------
     *  Define your auth middlewares
     *  -----------------------------
-    *   When defined this will apply the security scheme to each route where the middleware is encountered.
+    *   When defined this will apply the security scheme to each route where the middleware or middlewaregroup is encountered.
     *   Supported types: basic, bearer, apiKey:<header|name>, apiKey:<request> ,openId:<url-here>
     */
 
     'middleware' => [
-        // App\Http\Middleware::class => 'openId:https://myapi.example.com/open-idconfig'
+        // 'api' => 'openId:https://myapi.example.com/open-idconfig'
     ],
 
     /* -----------------------------

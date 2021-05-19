@@ -49,7 +49,8 @@ class SwaggerGeneratorService
     public const YAMLPARAMETER = "- ";
     public const YAMLARRAYKEYINDICATOR = ": ";
 
-    protected $components = [];
+    protected $schemas = [];
+    protected $security_schemes = [];
     protected $paths = [];
     protected $default_responses;
 
@@ -109,15 +110,45 @@ class SwaggerGeneratorService
 
     public function addAuthentication(&$swagger_docs)
     {
+        $schemes = Config::get('swagger_gen.middleware');
+        foreach($schemes as $key => $scheme)
+        {
+            $this->addScheme($key, $scheme);
+        }
         foreach($this->filtered_routes as $route)
         {
+            // This is loaded with the console kernel so middleware isn't being resolved to a class name.
             $middleware = $this->router->gatherRouteMiddleware($route);
-            if(! empty($middleware))
-            {
-                dd($middleware);
-            }
+            
         }
     }
+    protected function addScheme(string $key, string $scheme_string) : void
+    {
+         // Get the scheme type
+        $type = preg_replace('/[:](.*)/s',"",$scheme_string,1);
+        // Get the scheme name if supplied, otherwise default to the middleware name.
+        $scheme_name = preg_replace('/(.*)[;]/s',"",$scheme_string,1);
+        // 
+        $parameters_string = preg_replace('/[;](.*)/s',"",preg_replace('/(.*)[:]/s',"",$t,1),$scheme_string);
+        $scheme_parameters = $parameters_string === "" ? null : explode("|",$parameters_string);
+        if($security_scheme =  $this->buildScheme($type, $scheme_parameters))
+        {
+            $this->security_schemes[$scheme_name === $scheme_string ? $key: $scheme_name] = $security_scheme;
+        }
+    }
+
+    protected function buildScheme(string $type, ?array $scheme_parameters) : ?array
+    {
+        $type_method = "get{$type}AuthScheme";
+        if(\method_exists($this, $typeMethod))
+        {
+            return $scheme_parameters ? $this->$type_method($scheme_parameters) : $this->type_method();
+        } else {
+            return null;
+            Log::error("Supplied auth type: {$type} is not supported.");
+        }
+    }
+
 
     protected function addPaths(&$swagger_docs)
     {
@@ -328,21 +359,22 @@ class SwaggerGeneratorService
     protected function addComponents(array &$swagger_docs) : void
     {
         $components = [];
-        $components['schemas'] = $this->components;
+        $components['schemas'] = $this->schemas;
+        $components['securitySchemes'] = $this->security_schemes;
         $swagger_docs['components'] = $components;
      }
 
     protected function createRequestBodyComponent(array $parameters, string $requestName) : string
     {
         $requestName = $this->trimRequestPath($requestName);
-        if(! isset($this->components[$requestName]))
+        if(! isset($this->schemas[$requestName]))
         {
             $component = [
                 'type' => 'object',
                 'required' => $this->getRequiredParameters($parameters),
                 'properties' => $this->getProperties($parameters)
             ];
-            $this->components[$requestName] = $component;
+            $this->schemas[$requestName] = $component;
         }
         return $this->wrapString('#/components/schemas/'.$requestName);
     }
@@ -365,13 +397,13 @@ class SwaggerGeneratorService
             }
 
             
-            if(! isset($this->components[$resource_name]))
+            if(! isset($this->schemas[$resource_name]))
             {
                 $component = [
                     'type' => 'object',
                     'properties' => $this->getProperties($parameters)
                 ];
-                $this->components[$resource_name] = $component;
+                $this->schemas[$resource_name] = $component;
             }
         };
 
@@ -562,5 +594,43 @@ class SwaggerGeneratorService
     protected function addInfo(&$object): void
     {
         $object['info'] = Config::get('swagger_gen.info');
+    }
+
+    protected function getBasicAuthScheme() : array
+    {
+        return [
+            'type' => 'http',
+            'scheme' => 'basic'
+        ];
+    }
+
+    protected function getBearerAuthScheme() : array
+    {
+        return [
+            'type' => 'http',
+            'scheme' => 'bearer'
+        ];
+    }
+
+    protected function getApiKeyAuthScheme(array $params) : array
+    {
+        $api_key_auth =  [
+            'type' => 'apiKey',
+            'in' => $paarams[0],
+        ];
+
+        if(isset($params[1])) {
+            $api_key_auth['name'] = $params[1];
+        }
+
+        return $api_key_auth;
+    }
+
+    protected function getOpenIDAuthScheme(array $params)
+    {
+        return [
+            'type' => 'openIdConnect',
+            'openIdConnectUrl' => $params[0]
+        ];
     }
 }
