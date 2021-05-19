@@ -128,8 +128,8 @@ class SwaggerGeneratorService
         $type = preg_replace('/[:](.*)/s',"",$scheme_string,1);
         // Get the scheme name if supplied, otherwise default to the middleware name.
         $scheme_name = preg_replace('/(.*)[;]/s',"",$scheme_string,1);
-        // 
-        $parameters_string = preg_replace('/[;](.*)/s',"",preg_replace('/(.*)[:]/s',"",$t,1),$scheme_string);
+        // Get the parameters
+        $parameters_string = preg_replace('/[;](.*)/s',"",preg_replace('/(.*)[:]/s',"",$scheme_string,1),1);
         $scheme_parameters = $parameters_string === "" ? null : explode("|",$parameters_string);
         if($security_scheme =  $this->buildScheme($type, $scheme_parameters))
         {
