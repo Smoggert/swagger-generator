@@ -86,8 +86,9 @@ class SwaggerGeneratorService
         $this->addVersion($swagger_file);
         $this->addInfo($swagger_file);
         $this->addServers($swagger_file);
-        $this->addPaths($swagger_file);
         $this->addAuthentication($swagger_file);
+
+        $this->addPaths($swagger_file);
         $this->addComponents($swagger_file);
         $this->printSwaggerDocsUsingFormat($swagger_file, $format);
         return 0;
@@ -115,12 +116,6 @@ class SwaggerGeneratorService
         {
             $this->addScheme($key, $scheme);
         }
-        foreach($this->filtered_routes as $route)
-        {
-            // This is loaded with the console kernel so middleware isn't being resolved to a class name.
-            $middleware = $this->router->gatherRouteMiddleware($route);
-            
-        }
     }
     protected function addScheme(string $key, string $scheme_string) : void
     {
@@ -133,7 +128,10 @@ class SwaggerGeneratorService
         $scheme_parameters = $parameters_string === "" ? null : explode("|",$parameters_string);
         if($security_scheme =  $this->buildScheme($type, $scheme_parameters))
         {
-            $this->security_schemes[$scheme_name === $scheme_string ? $key: $scheme_name] = $security_scheme;
+            $this->security_schemes[$key] = [
+                'scheme' =>$security_scheme,
+                'name' => $scheme_name === $scheme_string ? $key : $scheme_name
+            ];
         }
     }
 
@@ -205,7 +203,7 @@ class SwaggerGeneratorService
                 }
             } 
             else {
-                if(\is_array($mix))
+                if(\is_array($mix) && ! empty($mix))
                 {
                     $this->output->writeln($indentation. $key. self::YAMLARRAYKEYINDICATOR);
                     $this->printYaml($mix, $indentation . self::YAMLSPACE);
@@ -214,9 +212,14 @@ class SwaggerGeneratorService
                     {
                         $this->output->writeln($indentation . $key . self::YAMLARRAYKEYINDICATOR . $mix);
                     } else {
-                        $this->output->writeln($indentation . self::YAMLPARAMETER . $key . self::YAMLARRAYKEYINDICATOR . $mix);
-                        $is_list_start = false;
-                        $indentation .= self::YAMLSPACE;
+                        if(\is_array($mix))
+                        {
+                            $this->output->writeln($indentation . self::YAMLPARAMETER . $key . self::YAMLARRAYKEYINDICATOR . "[]");
+                        }else {
+                            $this->output->writeln($indentation . self::YAMLPARAMETER . $key . self::YAMLARRAYKEYINDICATOR . $mix);
+                            $is_list_start = false;
+                            $indentation .= self::YAMLSPACE;
+                        }
                     }
                 }
             }
@@ -360,10 +363,20 @@ class SwaggerGeneratorService
     {
         $components = [];
         $components['schemas'] = $this->schemas;
-        $components['securitySchemes'] = $this->security_schemes;
+        $components['securitySchemes'] = $this->mappedschemes();
         $swagger_docs['components'] = $components;
      }
 
+    protected function mappedSchemes(): array
+    {
+        $schemes = [];
+        foreach($this->security_schemes as $security_scheme)
+        {
+            $schemes[$security_scheme['name']] = $security_scheme['scheme'];
+        }
+
+        return $schemes;
+    }
     protected function createRequestBodyComponent(array $parameters, string $requestName) : string
     {
         $requestName = $this->trimRequestPath($requestName);
@@ -556,8 +569,10 @@ class SwaggerGeneratorService
             try {
                 $verb = $this->getRouteVerb($route);
                 $path = [
-                    'responses' => $this->getResponses($route, $verb)
+                    'responses' => $this->getResponses($route, $verb),
+                    'security' => $this->getSecurity($route)
                 ];
+                
                 $this->generateSummary($path);
                 $this->setRouteParameters($route, $path);
                 $paths[$route->uri][$verb] = $path;
@@ -567,6 +582,21 @@ class SwaggerGeneratorService
             }
     }
 
+    protected function getSecurity(Route $route) : array 
+    {
+        $security = [];
+        $middlewares = $this->router->gatherRouteMiddleware($route);
+        foreach($middleware as $middleware)
+        {
+            if(isset($this->security_schemes[$middleware]))
+            {
+                $security[] = [
+                    $this->security_schemes[$middleware]['name'] => []
+                ];
+            }
+        }
+        return $security;
+    }
     protected function getPrefix(Route $route) : ?string
     {
        return $route->getPrefix() ?? null;
