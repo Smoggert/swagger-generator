@@ -140,7 +140,7 @@ class SwaggerGeneratorService
     protected function buildScheme(string $type, ?array $scheme_parameters) : ?array
     {
         $type_method = "get{$type}AuthScheme";
-        if(\method_exists($this, $typeMethod))
+        if(\method_exists($this, $type_method))
         {
             return $scheme_parameters ? $this->$type_method($scheme_parameters) : $this->type_method();
         } else {
