@@ -1,5 +1,7 @@
 # Swagger-generator
 
+!! This is a Work in Progress !!
+
 Swagger-generator is a package for Laravel that produces open-api 3.0.0 spec documentation based on Form Requests and Json Resources.
 It is currently in pre-alpha or something among those lines..
 
@@ -19,6 +21,15 @@ You can place this in require-dev and just run the command during deploy/dev. No
         "smoggert/swagger-generator": "@dev"
     }
 ```
+## !!! Prerequisits !!!
+The swagger generator looks through your code based on functions return values and parameters. If you do no supply any it won't find any.
+
+A controller action Should have typed requests, a typed resource as return value and shortname defined middleware.
+This package relies on this strict "linting" to get it's results. If you write horrible controllers that cannot be parsed I suggest using this package instead:
+
+https://github.com/DarkaOnLine/L5-Swagger
+
+
 ## Configuration
 The script currently works on an include route X basis.
 If you want to specify which routes you'd like to include, (among other things), I highly recommend publishing the configuration file and adjusting it.
