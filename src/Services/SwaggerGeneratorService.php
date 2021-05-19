@@ -193,33 +193,31 @@ class SwaggerGeneratorService
         $indentation = $starting_indentation;
         foreach($mixed as $key => $mix)
         {
+            $is_array = \is_array($mix);
             if(is_numeric($key))
             {
-                if(\is_array($mix))
+                if($is_array && ! empty($mix))
                 {
                     $this->printYaml($mix, $indentation . self::YAMLSPACE, true);
                 } else {
+                    $mix = $is_array ? "[]" : $mix;
                     $this->output->writeln($indentation . self::YAMLPARAMETER . $mix);
                 }
             } 
             else {
-                if(\is_array($mix) && ! empty($mix))
+                if($is_array && ! empty($mix))
                 {
                     $this->output->writeln($indentation. $key. self::YAMLARRAYKEYINDICATOR);
                     $this->printYaml($mix, $indentation . self::YAMLSPACE);
                 } else {
+                    $mix = $is_array ? "[]" : $mix;
                     if(! $is_list_start)
                     {
                         $this->output->writeln($indentation . $key . self::YAMLARRAYKEYINDICATOR . $mix);
                     } else {
-                        if(\is_array($mix))
-                        {
-                            $this->output->writeln($indentation . self::YAMLPARAMETER . $key . self::YAMLARRAYKEYINDICATOR . "[]");
-                        }else {
-                            $this->output->writeln($indentation . self::YAMLPARAMETER . $key . self::YAMLARRAYKEYINDICATOR . $mix);
-                            $is_list_start = false;
-                            $indentation .= self::YAMLSPACE;
-                        }
+                        $this->output->writeln($indentation . self::YAMLPARAMETER . $key . self::YAMLARRAYKEYINDICATOR . $mix);
+                        $is_list_start = false;
+                        $indentation .= self::YAMLSPACE;
                     }
                 }
             }
@@ -374,7 +372,7 @@ class SwaggerGeneratorService
         {
             $schemes[$security_scheme['name']] = $security_scheme['scheme'];
         }
-
+        
         return $schemes;
     }
     protected function createRequestBodyComponent(array $parameters, string $requestName) : string
@@ -586,7 +584,7 @@ class SwaggerGeneratorService
     {
         $security = [];
         $middlewares = $this->router->gatherRouteMiddleware($route);
-        foreach($middleware as $middleware)
+        foreach($middlewares as $middleware)
         {
             if(isset($this->security_schemes[$middleware]))
             {
