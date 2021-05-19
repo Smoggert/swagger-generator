@@ -616,7 +616,7 @@ class SwaggerGeneratorService
     {
         $api_key_auth =  [
             'type' => 'apiKey',
-            'in' => $paarams[0],
+            'in' => $params[0],
         ];
 
         if(isset($params[1])) {

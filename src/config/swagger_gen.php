@@ -44,7 +44,7 @@ return [
     */
 
     'middleware' => [
-        // 'api' => 'openId:https://myapi.example.com/open-idconfig'
+        // 'api' => 'openId:https://myapi.example.com/open-idconfig;optional_name'
     ],
 
     /* -----------------------------
