@@ -125,7 +125,7 @@ class SwaggerGeneratorService
     protected function addScheme(string $key, string $scheme_string) : void
     {
          // Strip name if it exists and get the scheme type
-        $type = preg_replace('/[:](.*)/s',"",preg_replace('/[;(.*)]/s',"",$scheme_string,1),1);
+        $type = preg_replace('/[:](.*)/s',"",preg_replace('/[;](.*)/s',"",$scheme_string,1),1);
         // Get the scheme name if supplied, otherwise default to the middleware name.
         $scheme_name = preg_replace('/(.*)[;]/s',"",$scheme_string,1);
         // Get the parameters
