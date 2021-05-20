@@ -7,15 +7,8 @@ It is currently in pre-alpha or something among those lines..
 
 ## Installation
 
-Add this hub to your repos on composer.json . Will figure out how to get it live once it's more developed.
 You can place this in require-dev and just run the command during deploy/dev. No need to have this package on production.
 ```json
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/Smoggert/swagger-generator"
-        }
-    ],
     "require-dev": {
         
         "smoggert/swagger-generator": "@dev"
