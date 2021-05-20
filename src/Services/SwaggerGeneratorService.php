@@ -493,7 +493,7 @@ class SwaggerGeneratorService
         $name = $type === 'array' ? $property_name . '[]' : $property_name;
 
             $param = [
-                'name' => $property_name,
+                'name' => $name,
                 'in' => "query",
                 'type' =>  $this->getPropertyType($property_info),
                 'required' => $this->isRequestParameterRequired($property_info),
