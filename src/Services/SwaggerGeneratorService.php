@@ -238,6 +238,7 @@ class SwaggerGeneratorService
                     $this->printYaml($mix, $indentation . self::YAMLSPACE);
                 } else {
                     $mix = $is_array ? "[]" : $mix;
+                    $mix = \is_bool($mix) ? ($mix ? "true":  "false") : $mix;
                     if(! $is_list_start)
                     {
                         $this->output->writeln($indentation . $key . self::YAMLARRAYKEYINDICATOR . $mix);
@@ -306,8 +307,9 @@ class SwaggerGeneratorService
                         if($this->isQueryRoute($route))
                         {
                             $this->parseJsonBodyParametersAsQueryParameters($class,$query_parameters);
+                        }else {
+                            $this->parseJsonBodyParameters($class,$object);
                         }
-                        $this->parseJsonBodyParameters($class,$object);
                     } else
                     {
                         $this->parseUrlParameter($parameter,$url_parameters);
@@ -352,7 +354,7 @@ class SwaggerGeneratorService
             'name' => $parameter->getName(),
             'in' => "path",
             'type' => "string",
-            'required' => ($parameter->isOptional() ? "false": "true"),
+            'required' => ($parameter->isOptional() ? false: true),
         ];
         $url_parameters[] = $param;
     }
@@ -491,7 +493,7 @@ class SwaggerGeneratorService
             'name' => $property_name,
             'in' => "query",
             'type' =>  $this->getPropertyType($property_info),
-            'required' => $this->isRequestParameterRequired($property_info) ? "false": "true",
+            'required' => $this->isRequestParameterRequired($property_info),
         ];
 
         $parameters[] = $param;
