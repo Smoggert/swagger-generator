@@ -16,7 +16,7 @@ return [
 
     'servers' => [
         [
-            'url' => 'http://dev.test.test/api/v1',
+            'url' => 'http://{tenant:demo}.test.test/api/v1',
             'description' => 'My dev server'
         ],
     ],
@@ -29,12 +29,13 @@ return [
     *  Define your allowed routes
     *  -----------------------------
     *   This defines the prefixes that will be required to index the routes from your application.
-    *   
+    *   You can index the tag related to the prefix with /{$tag}
     */
 
     'allowed' => [
-        'api'
+        'api/v1/{$tag}'
     ],
+
 
     /* -----------------------------
     *  Define your auth middlewares

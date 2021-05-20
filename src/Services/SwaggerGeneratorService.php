@@ -49,6 +49,7 @@ class SwaggerGeneratorService
     public const YAMLPARAMETER = "- ";
     public const YAMLARRAYKEYINDICATOR = ": ";
 
+    protected $tags = [];
     protected $schemas = [];
     protected $security_schemes = [];
     protected $paths = [];
@@ -98,12 +99,13 @@ class SwaggerGeneratorService
         $allowed_routes = Config::get('swagger_gen.allowed');
 
         $this->filtered_routes = new Collection();
-
-        foreach($this->routes as $route)
+        foreach($allowed_routes as $allowed_route)
         {
-            foreach($allowed_routes as $allowed_route)
+            $stripped_allowed_route = str_replace('/{$tag}',"",$allowed_route);
+            foreach($this->routes as $route)
             {
-                if(str_contains($route->uri,$allowed_route))
+                if(str_contains($route->uri,$stripped_allowed_route))
+                
                     $this->filtered_routes->push($route);
             }
         }
@@ -568,7 +570,8 @@ class SwaggerGeneratorService
                 $verb = $this->getRouteVerb($route);
                 $path = [
                     'responses' => $this->getResponses($route, $verb),
-                    'security' => $this->getSecurity($route)
+                    'security' => $this->getSecurity($route),
+                    //'tags' => $this->getTagsFromRoute($route)
                 ];
                 
                 $this->generateSummary($path);
@@ -611,7 +614,38 @@ class SwaggerGeneratorService
     }
     protected function addServers(&$swagger_docs) : void
     {
-        $swagger_docs['servers'] = Config::get('swagger_gen.servers');
+        $servers = Config::get('swagger_gen.servers');
+        foreach($servers as &$server)
+        {
+            $params = [];
+            preg_match_all("/\{[a-zA-Z0-9-\.,:]*\}/",$server['url'] ?? "",$params);
+            if(! empty($params[0]))
+            {
+                $this->addParametersToServer($server, $params[0]);
+            }
+        }
+
+        $swagger_docs['servers'] = $servers;
+    }
+
+    protected function addParametersToServer(array &$server,array $params) : void
+    {
+        foreach($params as $param)
+        {
+            $param_cut = substr($param,1,-1);
+            $default = explode(",",preg_replace("/[a-zA-Z0-9-\.]*:/","",$param_cut));
+            $vars = [
+                'default' => $default[0]
+            ];
+            if(count($default) > 1)
+            {
+                $vars['enum'] = $default;
+            }
+            $server['variables'][preg_replace("/:[a-zA-Z0-9-\.,]*/","",$param_cut)] = $vars;
+        }
+      
+        $server['url'] = preg_replace("/:[a-zA-Z0-9-\.,]*\}/","}",$server['url']);
+
     }
 
     protected function addVersion(&$object) : void
