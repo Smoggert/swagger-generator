@@ -489,12 +489,20 @@ class SwaggerGeneratorService
 
     protected function addQueryParameter($property_name,$property_info,&$parameters)
     {
-        $param = [
-            'name' => $property_name,
-            'in' => "query",
-            'type' =>  $this->getPropertyType($property_info),
-            'required' => $this->isRequestParameterRequired($property_info),
-        ];
+        $type = $this->getPropertyType($property_info);
+        $name = $type === 'array' ? $property_name . '[]' : $property_name;
+
+            $param = [
+                'name' => $property_name,
+                'in' => "query",
+                'type' =>  $this->getPropertyType($property_info),
+                'required' => $this->isRequestParameterRequired($property_info),
+            ];
+        if($type === 'array')
+        {
+            $param['collectionFormat'] = "multi";
+            $param['uniqueItems'] = true;
+        }
 
         $parameters[] = $param;
     }
@@ -512,6 +520,9 @@ class SwaggerGeneratorService
             } elseif (str_contains($info, 'bool'))
             {
                 return 'boolean';
+            } elseif (str_contains($info, 'array'))
+            {
+                return 'array';
             } elseif ( str_contains($info,'int'))
             {
                 Log::alert('Possible use of `int´ statement. Due to possible mismatches this type should be declared as integer.');
