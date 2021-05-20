@@ -79,9 +79,6 @@ class SwaggerGeneratorService
         }
 
         $this->output = $output;
-
-        $this->filterRoutes();
-
         $swagger_file = [];
 
         $this->addVersion($swagger_file);
@@ -89,26 +86,53 @@ class SwaggerGeneratorService
         $this->addServers($swagger_file);
         $this->addAuthentication($swagger_file);
 
+        $this->filterRoutes();
+
+        $this->addTags($swagger_file);
         $this->addPaths($swagger_file);
         $this->addComponents($swagger_file);
         $this->printSwaggerDocsUsingFormat($swagger_file, $format);
         return 0;
     }
-    public function filterRoutes() : void
+    protected function addTags(&$swagger_file) : void
+    {
+        $swagger_file['tags'] = $this->tags;
+    }
+    protected function filterRoutes() : void
     {
         $allowed_routes = Config::get('swagger_gen.allowed');
 
-        $this->filtered_routes = new Collection();
+        $filtered_routes = [];
+        $all_tags = new Collection();
+
         foreach($allowed_routes as $allowed_route)
         {
-            $stripped_allowed_route = str_replace('/{$tag}',"",$allowed_route);
+            $stripped_allowed_route = str_replace('{$tag}',"([a-zA-Z0-9-]+)",$allowed_route);
+            $escaped_allowed_route = str_replace('/','\/',$stripped_allowed_route);
+            $twice_stripped_allowed_route = str_replace('{id}',"[a-zA-Z0-9-:\}\{]+",$escaped_allowed_route);
+
             foreach($this->routes as $route)
             {
-                if(str_contains($route->uri,$stripped_allowed_route))
-                
-                    $this->filtered_routes->push($route);
+                $tags= [];
+                if(preg_match('/'. $twice_stripped_allowed_route .'/s',$route->uri,$tags))
+                {
+                    array_shift($tags);
+                    $object_id = spl_object_id($route);
+                    if(isset($filtered_routes[$object_id]))
+                    {
+                        $filtered_routes[$object_id]['tags'] =collect(array_merge($filtered_routes[$object_id]['tags'],$tags))->unique()->toArray();
+                    } else {
+                        $filtered_routes[$object_id] = [
+                            'route' => $route,
+                            'tags' => $tags
+                        ];
+                    }
+                    $all_tags->push(... $tags);
+                }
             }
         }
+        $this->filtered_routes = $filtered_routes;
+        $this->tags = $all_tags->unique()->toArray();
     }
 
     public function addAuthentication(&$swagger_docs)
@@ -122,11 +146,11 @@ class SwaggerGeneratorService
     protected function addScheme(string $key, string $scheme_string) : void
     {
          // Strip name if it exists and get the scheme type
-        $type = preg_replace('/[:](.*)/s',"",preg_replace('/[;](.*)/s',"",$scheme_string,1),1);
+        $type = preg_replace('/[:](.+)/s',"",preg_replace('/[;](.+)/s',"",$scheme_string,1),1);
         // Get the scheme name if supplied, otherwise default to the middleware name.
-        $scheme_name = preg_replace('/(.*)[;]/s',"",$scheme_string,1);
+        $scheme_name = preg_replace('/(.+)[;]/s',"",$scheme_string,1);
         // Get the parameters
-        $parameters_string = preg_replace('/[;](.*)/s',"",preg_replace('/(.*)[:]/s',"",$scheme_string,1),1);
+        $parameters_string = preg_replace('/[;](.+)/s',"",preg_replace('/(.*)[:]/s',"",$scheme_string,1),1);
         $scheme_parameters = $parameters_string === "" ? null : explode("|",$parameters_string);
         if($security_scheme =  $this->buildScheme($type, $scheme_parameters))
         {
@@ -153,6 +177,7 @@ class SwaggerGeneratorService
     protected function addPaths(&$swagger_docs)
     {
         $paths = [];
+
         foreach($this->filtered_routes as $route)
         {
             $this->addPath($paths,$route);
@@ -564,22 +589,22 @@ class SwaggerGeneratorService
         }
         return null;
     }
-    protected function addPath(array &$paths, Route $route):void
+    protected function addPath(array &$paths, array $route):void
     {
             try {
-                $verb = $this->getRouteVerb($route);
+                $verb = $this->getRouteVerb($route['route']);
                 $path = [
-                    'responses' => $this->getResponses($route, $verb),
-                    'security' => $this->getSecurity($route),
-                    //'tags' => $this->getTagsFromRoute($route)
+                    'responses' => $this->getResponses($route['route'], $verb),
+                    'security' => $this->getSecurity($route['route']),
+                    'tags' => $route['tags'] ?? []
                 ];
                 
                 $this->generateSummary($path);
-                $this->setRouteParameters($route, $path);
-                $paths[$route->uri][$verb] = $path;
+                $this->setRouteParameters($route['route'], $path);
+                $paths[$route['route']->uri][$verb] = $path;
             }catch (\Exception $exception)
             {
-                Log::info($exception->getMessage()." :".$this->getRouteName($route), $exception->getTrace());
+                Log::info($exception->getMessage()." :".$this->getRouteName($route['route']), $exception->getTrace());
             }
     }
 
@@ -618,7 +643,7 @@ class SwaggerGeneratorService
         foreach($servers as &$server)
         {
             $params = [];
-            preg_match_all("/\{[a-zA-Z0-9-\.,:]*\}/",$server['url'] ?? "",$params);
+            preg_match_all("/\{[a-zA-Z0-9-\.,:]+\}/",$server['url'] ?? "",$params);
             if(! empty($params[0]))
             {
                 $this->addParametersToServer($server, $params[0]);
@@ -633,7 +658,7 @@ class SwaggerGeneratorService
         foreach($params as $param)
         {
             $param_cut = substr($param,1,-1);
-            $default = explode(",",preg_replace("/[a-zA-Z0-9-\.]*:/","",$param_cut));
+            $default = explode(",",preg_replace("/[a-zA-Z0-9-\.]+:/","",$param_cut));
             $vars = [
                 'default' => $default[0]
             ];
@@ -641,10 +666,10 @@ class SwaggerGeneratorService
             {
                 $vars['enum'] = $default;
             }
-            $server['variables'][preg_replace("/:[a-zA-Z0-9-\.,]*/","",$param_cut)] = $vars;
+            $server['variables'][preg_replace("/:[a-zA-Z0-9-\.,]+/","",$param_cut)] = $vars;
         }
       
-        $server['url'] = preg_replace("/:[a-zA-Z0-9-\.,]*\}/","}",$server['url']);
+        $server['url'] = preg_replace("/:[a-zA-Z0-9-\.,]+\}/","}",$server['url']);
 
     }
 
