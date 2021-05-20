@@ -120,7 +120,7 @@ class SwaggerGeneratorService
                     $object_id = spl_object_id($route);
                     if(isset($filtered_routes[$object_id]))
                     {
-                        $filtered_routes[$object_id]['tags'] =collect(array_merge($filtered_routes[$object_id]['tags'],$tags))->unique()->toArray();
+                        $filtered_routes[$object_id]['tags'] =collect(array_merge($filtered_routes[$object_id]['tags'],$tags))->unique()->sort()->toArray();
                     } else {
                         $filtered_routes[$object_id] = [
                             'route' => $route,
@@ -132,7 +132,7 @@ class SwaggerGeneratorService
             }
         }
         $this->filtered_routes = $filtered_routes;
-        $this->tags = $all_tags->unique()->toArray();
+        $this->tags = $all_tags->unique()->sort()->toArray();
     }
 
     public function addAuthentication(&$swagger_docs)
