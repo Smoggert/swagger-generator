@@ -7,22 +7,22 @@ return [
     *   These are the base parameters that provide context to the api.
     */
 
-    'openapi' => "3.0.0",
+    'openapi' => '3.0.0',
 
     'info' => [
-        'title' => "My test api",
-        'version' => "1.0",
+        'title' => 'My test api',
+        'version' => '1.0',
     ],
 
     'servers' => [
         [
             'url' => 'http://{tenant:demo}.test.test/api/v1',
-            'description' => 'My dev server'
+            'description' => 'My dev server',
         ],
     ],
 
     'output' => [
-        'path' => storage_path('text.txt')
+        'path' => storage_path('text.txt'),
     ],
 
     /* -----------------------------
@@ -33,9 +33,8 @@ return [
     */
 
     'allowed' => [
-        'api/v1/{$tag}'
+        'api/v1/{$tag}',
     ],
-
 
     /* -----------------------------
     *  Define your auth middlewares
@@ -51,58 +50,58 @@ return [
     /* -----------------------------
     *  Default response types per verb
     *  -----------------------------
-    * 
+    *
     *   Default responses are overwritten & appended by reponses found by the generator.
     */
 
     'default_responses' => [
         'get' => [
             '200' => [
-                'description' => 'OK'
-            ]
+                'description' => 'OK',
+            ],
         ],
         'post' => [
             '200' => [
-                'description' => 'OK'
-            ],    
+                'description' => 'OK',
+            ],
             '202' => [
-            'description' => 'Action is will be executed.'
+                'description' => 'Action is will be executed.',
             ],
         ],
         'put' => [
             '200' => [
-                'description' => 'OK'
-            ],    
+                'description' => 'OK',
+            ],
             '202' => [
-            'description' => 'Action is will be executed.'
+                'description' => 'Action is will be executed.',
             ],
         ],
         'patch' => [
             '200' => [
-                'description' => 'OK'
-            ],    
+                'description' => 'OK',
+            ],
             '202' => [
-            'description' => 'Action is will be executed.'
+                'description' => 'Action is will be executed.',
             ],
         ],
         'delete' => [
             '204' => [
-                'description' => 'Resource deleted.'
+                'description' => 'Resource deleted.',
             ],
         ],
         '*' => [
             '400' => [
-                'description' => 'Bad request.'
+                'description' => 'Bad request.',
             ],
             '401' => [
-                'description' => 'Unauthorized.'
+                'description' => 'Unauthorized.',
             ],
             '403' => [
-                'description' => 'Forbidden.'
+                'description' => 'Forbidden.',
             ],
             '404' => [
-                'description' => 'Route/Resource not found.'
+                'description' => 'Route/Resource not found.',
             ],
-        ]
+        ],
     ],
 ];

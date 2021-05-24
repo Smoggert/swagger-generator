@@ -27,10 +27,10 @@ class SwaggerGeneratorServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->publishes([
-            __DIR__.'/config/swagger_gen.php' => \config_path('swagger_gen.php')
+            __DIR__.'/config/swagger_gen.php' => \config_path('swagger_gen.php'),
         ], 'config');
 
-        if($this->app->runningInConsole()) {
+        if ($this->app->runningInConsole()) {
             $this->commands([
                 GenerateSwaggerCommand::class,
             ]);
