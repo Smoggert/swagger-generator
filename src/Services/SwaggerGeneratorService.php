@@ -591,7 +591,7 @@ class SwaggerGeneratorService
             $this->generateSummary($path);
             $this->setRouteParameters($route['route'], $path);
             $path_name = (strpos($route['route']->uri,'/') === 0) ? $route['route']->uri : '/' . $route['route']->uri;
-            $paths[$route['route']->uri][$verb] = $path;
+            $paths[$path_name][$verb] = $path;
         } catch (\Exception $exception) {
             Log::info($exception->getMessage().' :'.$this->getRouteName($route['route']), $exception->getTrace());
         }
