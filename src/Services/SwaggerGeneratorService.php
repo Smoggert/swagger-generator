@@ -603,7 +603,9 @@ class SwaggerGeneratorService
             Log::info($exception->getMessage().' :'.$this->getRouteName($route['route']), $exception->getTrace());
         }
     }
-
+    /**
+     * Not supporting scopes atm.
+     */
     protected function getSecurity(Route $route): array
     {
         $security = [];
@@ -612,7 +614,9 @@ class SwaggerGeneratorService
             foreach($this->authMiddleware as $key => $authMiddleware)
             {
                 if(isset($authMiddleware['class']) && $authMiddleware['class'] === $middleware) {
-                    $security[$authMiddleware['name'] ?? $key] = [];
+                    $security[] = [
+                        $authMiddleware['name'] ?? $key => []
+                    ];
                 }
             }
         }
