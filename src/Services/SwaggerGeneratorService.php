@@ -403,29 +403,32 @@ class SwaggerGeneratorService
         return $this->wrapString('#/components/schemas/'.$requestName);
     }
 
-    protected function createResponseBodyFromJsonResource(?\ReflectionType $type): string
+    protected function createResponseBodyFromJsonResource(?\ReflectionType $type): ?string
     {
         $reflection = (isset($type) && ! $type->isBuiltin()) ? new \ReflectionClass($type->getName()) : null;
 
-        $resource_name = $reflection ? $this->trimResourcePath($type->getName()) : '204';
-
-        if ($this->responseClassIsJsonResource($reflection)) {
-            if ($this->responseClassIsResourceCollection($reflection)) {
-                $parameters = $reflection->newInstance(new Collection())->toArray(request());
-            } else {
-                $parameters = $reflection->newInstance(new Model())->toArray(request());
+        $resource_name = $reflection ? $this->trimResourcePath($type->getName()) : null;
+        
+        if(isset($resource_name))
+        {
+            if ($this->responseClassIsJsonResource($reflection)) {
+                if ($this->responseClassIsResourceCollection($reflection)) {
+                    $parameters = $reflection->newInstance(new Collection())->toArray(request());
+                } else {
+                    $parameters = $reflection->newInstance(new Model())->toArray(request());
+                }
+    
+                if (! isset($this->schemas[$resource_name])) {
+                    $component = [
+                        'type' => 'object',
+                        'properties' => $this->getProperties($parameters),
+                    ];
+                    $this->schemas[$resource_name] = $component;
+                }
             }
-
-            if (! isset($this->schemas[$resource_name])) {
-                $component = [
-                    'type' => 'object',
-                    'properties' => $this->getProperties($parameters),
-                ];
-                $this->schemas[$resource_name] = $component;
-            }
+            return $this->wrapString('#/components/schemas/'.$resource_name);
         }
-
-        return $this->wrapString('#/components/schemas/'.$resource_name);
+        return $null;
     }
 
     protected function trimRequestPath(string $requestName) :string
@@ -539,16 +542,25 @@ class SwaggerGeneratorService
 
         if ($method = $this->getRouteMethod($route)) {
             $class_type = $this->getMethodReturnClass($method);
+
             $response = [
                 'description' => 'The object returned by this method.',
-                'content' => [
+            ];
+            
+            
+            $response_reference = $this->createResponseBodyFromJsonResource($class_type);
+
+            if(isset($response_reference)) {
+                $response['content'] = [
                     'application/json' => [
                         'schema' => [
-                            '$ref' => $this->createResponseBodyFromJsonResource($class_type),
+                            '$ref' => ,
                         ],
                     ],
-                ],
-            ];
+                ];
+            }
+           
+
             $responses[$this->wrapString('200')] = $response;
         }
 
