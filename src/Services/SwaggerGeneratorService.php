@@ -484,7 +484,7 @@ class SwaggerGeneratorService
                 'items' => [
                     'type' => 'string'
                 ]
-            ]
+            ];
         }
 
         $parameters[] = $param;
