@@ -612,7 +612,7 @@ class SwaggerGeneratorService
             foreach($this->authMiddleware as $key => $authMiddleware)
             {
                 if(isset($authMiddleware['class']) && $authMiddleware['class'] === $middleware) {
-                    $security[] = $this->security_schemes[$middleware]['name'] ?? $key;
+                    $security[$authMiddleware['name'] ?? $key] = [];
                 }
             }
         }
