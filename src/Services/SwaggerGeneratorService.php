@@ -88,7 +88,13 @@ class SwaggerGeneratorService
 
     protected function addTags(&$swagger_file): void
     {
-        $swagger_file['tags'] = $this->tags;
+        $swagger_file['tags'] = [];
+
+        foreach($this->tags as $tag){
+            $swagger_file['tags'][] = [
+                    'name' => $tag
+               ]
+        }
     }
 
     protected function filterRoutes(): void
@@ -344,7 +350,7 @@ class SwaggerGeneratorService
                 'content' => [
                     'application/json' => [
                         'schema' => [
-                            '\$ref' => $this->createRequestBodyComponent($requestParameters, $class_name),
+                            '$ref' => $this->createRequestBodyComponent($requestParameters, $class_name),
                         ],
                     ],
                 ],
