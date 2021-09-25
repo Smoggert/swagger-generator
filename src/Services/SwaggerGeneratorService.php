@@ -17,7 +17,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 class SwaggerGeneratorService
 {
     /**
-     * @var \Symfony\Component\Console\Output\OutputInterface 
+     * @var \Symfony\Component\Console\Output\OutputInterface
      */
     protected $output;
 
@@ -60,6 +60,7 @@ class SwaggerGeneratorService
         $this->routes = $router->getRoutes();
         $this->default_responses = Config::get('swagger_gen.default_responses');
         $this->output_file_path = Config::get('swagger_gen.output');
+        $this->authMiddleware = Config::get('swagger_gen.middleware');
     }
 
     public function generate(OutputInterface $output, string $format = 'yaml'): int
@@ -91,9 +92,9 @@ class SwaggerGeneratorService
     {
         $swagger_file['tags'] = [];
 
-        foreach($this->tags as $tag){
+        foreach ($this->tags as $tag) {
             $swagger_file['tags'][] = [
-                    'name' => $tag
+                'name' => $tag,
             ];
         }
     }
@@ -133,25 +134,17 @@ class SwaggerGeneratorService
 
     public function addAuthentication(&$swagger_docs)
     {
-        $schemes = Config::get('swagger_gen.middleware');
-        foreach ($schemes as $key => $scheme) {
+        foreach ($this->authMiddleware as $key => $scheme) {
             $this->addScheme($key, $scheme);
         }
     }
 
-    protected function addScheme(string $key, string $scheme_string): void
+    protected function addScheme(string $key, array $scheme): void
     {
-        // Strip name if it exists and get the scheme type
-        $type = preg_replace('/[:](.+)/s', '', preg_replace('/[;](.+)/s', '', $scheme_string, 1), 1);
-        // Get the scheme name if supplied, otherwise default to the middleware name.
-        $scheme_name = preg_replace('/(.+)[;]/s', '', $scheme_string, 1);
-        // Get the parameters
-        $parameters_string = preg_replace('/[;](.+)/s', '', preg_replace('/(.*)[:]/s', '', $scheme_string, 1), 1);
-        $scheme_parameters = $parameters_string === '' ? null : explode('|', $parameters_string);
-        if ($security_scheme = $this->buildScheme($type, $scheme_parameters)) {
+        if ($security_scheme = $this->buildScheme($scheme['type'], $scheme['parameters'] ?? null)) {
             $this->security_schemes[$key] = [
-                'scheme' =>$security_scheme,
-                'name' => $scheme_name === $scheme_string ? $key : $scheme_name,
+                'scheme' => $security_scheme,
+                'name' => $scheme['name'] ?? $key,
             ];
         }
     }
@@ -160,7 +153,7 @@ class SwaggerGeneratorService
     {
         $type_method = "get{$type}AuthScheme";
         if (\method_exists($this, $type_method)) {
-            return $scheme_parameters ? $this->$type_method($scheme_parameters) : $this->type_method();
+            return $scheme_parameters ? $this->$type_method($scheme_parameters) : $this->$type_method();
         } else {
             return null;
             Log::error("Supplied auth type: {$type} is not supported.");
@@ -408,16 +401,15 @@ class SwaggerGeneratorService
         $reflection = (isset($type) && ! $type->isBuiltin()) ? new \ReflectionClass($type->getName()) : null;
 
         $resource_name = $reflection ? $this->trimResourcePath($type->getName()) : null;
-        
-        if(isset($resource_name))
-        {
+
+        if (isset($resource_name)) {
             if ($this->responseClassIsJsonResource($reflection)) {
                 if ($this->responseClassIsResourceCollection($reflection)) {
                     $parameters = $reflection->newInstance(new Collection())->toArray(request());
                 } else {
                     $parameters = $reflection->newInstance(new Model())->toArray(request());
                 }
-    
+
                 if (! isset($this->schemas[$resource_name])) {
                     $component = [
                         'type' => 'object',
@@ -426,25 +418,28 @@ class SwaggerGeneratorService
                     $this->schemas[$resource_name] = $component;
                 }
             }
+
             return $this->wrapString('#/components/schemas/'.$resource_name);
         }
+
         return $null;
     }
 
-    protected function trimRequestPath(string $requestName) :string
+    protected function trimRequestPath(string $requestName): string
     {
         //TODO :regex replace
         return $this->replaceSlashes(str_replace('App\\Http\\Requests\\', '', $requestName));
     }
 
-    protected function trimResourcePath(string $requestName) :string
+    protected function trimResourcePath(string $requestName): string
     {
         //TODO :regex replace
         return $this->replaceSlashes(str_replace('App\\Http\\Resources\\', '', $requestName));
     }
 
-    protected function replaceSlashes(string $requestName) :string {
-        return str_replace('\\','',$requestName);
+    protected function replaceSlashes(string $requestName): string
+    {
+        return str_replace('\\', '', $requestName);
     }
 
     protected function getProperties(array $parameters): array
@@ -545,20 +540,18 @@ class SwaggerGeneratorService
             $response = [
                 'description' => 'The object returned by this method.',
             ];
-            
 
             $response_reference = $this->createResponseBodyFromJsonResource($class_type);
 
-            if(isset($response_reference)) {
+            if (isset($response_reference)) {
                 $response['content'] = [
                     'application/json' => [
                         'schema' => [
                             '$ref' => $response_reference,
-                        ]
-                    ]
+                        ],
+                    ],
                 ];
             }
-           
 
             $responses[$this->wrapString('200')] = $response;
         }
@@ -604,22 +597,27 @@ class SwaggerGeneratorService
 
             $this->generateSummary($path);
             $this->setRouteParameters($route['route'], $path);
-            $path_name = (strpos($route['route']->uri,'/') === 0) ? $route['route']->uri : '/' . $route['route']->uri;
+            $path_name = (strpos($route['route']->uri, '/') === 0) ? $route['route']->uri : '/'.$route['route']->uri;
             $paths[$path_name][$verb] = $path;
         } catch (\Exception $exception) {
             Log::info($exception->getMessage().' :'.$this->getRouteName($route['route']), $exception->getTrace());
         }
     }
 
+    /**
+     * Not supporting scopes atm.
+     */
     protected function getSecurity(Route $route): array
     {
         $security = [];
         $middlewares = $this->router->gatherRouteMiddleware($route);
         foreach ($middlewares as $middleware) {
-            if (isset($this->security_schemes[$middleware])) {
-                $security[] = [
-                    $this->security_schemes[$middleware]['name'] => [],
-                ];
+            foreach ($this->authMiddleware as $key => $authMiddleware) {
+                if (isset($authMiddleware['class']) && $authMiddleware['class'] === $middleware) {
+                    $security[] = [
+                        $authMiddleware['name'] ?? $key => [],
+                    ];
+                }
             }
         }
 
@@ -702,11 +700,11 @@ class SwaggerGeneratorService
     {
         $api_key_auth = [
             'type' => 'apiKey',
-            'in' => $params[0],
+            'in' => $params['in'],
         ];
 
-        if (isset($params[1])) {
-            $api_key_auth['name'] = $params[1];
+        if ($params['in'] === 'header') {
+            $api_key_auth['name'] = $params['header_name'] ?? 'apiKey';
         }
 
         return $api_key_auth;
@@ -716,7 +714,7 @@ class SwaggerGeneratorService
     {
         return [
             'type' => 'openIdConnect',
-            'openIdConnectUrl' => $params[0],
+            'openIdConnectUrl' => $params['openIdUri'] ?? '',
         ];
     }
 }
