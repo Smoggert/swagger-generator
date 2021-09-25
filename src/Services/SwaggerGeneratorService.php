@@ -554,8 +554,8 @@ class SwaggerGeneratorService
                 $response['content'] = [
                     'application/json' => [
                         'schema' => [
-                            '$ref' => ,
-                        ],
+                            '$ref' => $response_reference,
+                        ]
                     ]
                 ];
             }
