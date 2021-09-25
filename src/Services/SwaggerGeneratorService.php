@@ -60,6 +60,7 @@ class SwaggerGeneratorService
         $this->routes = $router->getRoutes();
         $this->default_responses = Config::get('swagger_gen.default_responses');
         $this->output_file_path = Config::get('swagger_gen.output');
+        $this->authMiddleware =  Config::get('swagger_gen.middleware');
     }
 
     public function generate(OutputInterface $output, string $format = 'yaml'): int
@@ -133,25 +134,17 @@ class SwaggerGeneratorService
 
     public function addAuthentication(&$swagger_docs)
     {
-        $schemes = Config::get('swagger_gen.middleware');
-        foreach ($schemes as $key => $scheme) {
+        foreach ($this->authMiddleware as $key => $scheme) {
             $this->addScheme($key, $scheme);
         }
     }
 
-    protected function addScheme(string $key, string $scheme_string): void
+    protected function addScheme(string $key, array $scheme): void
     {
-        // Strip name if it exists and get the scheme type
-        $type = preg_replace('/[:](.+)/s', '', preg_replace('/[;](.+)/s', '', $scheme_string, 1), 1);
-        // Get the scheme name if supplied, otherwise default to the middleware name.
-        $scheme_name = preg_replace('/(.+)[;]/s', '', $scheme_string, 1);
-        // Get the parameters
-        $parameters_string = preg_replace('/[;](.+)/s', '', preg_replace('/(.*)[:]/s', '', $scheme_string, 1), 1);
-        $scheme_parameters = $parameters_string === '' ? null : explode('|', $parameters_string);
-        if ($security_scheme = $this->buildScheme($type, $scheme_parameters)) {
+        if ($security_scheme = $this->buildScheme($type, $scheme['paramaters'] ?? null)) {
             $this->security_schemes[$key] = [
-                'scheme' =>$security_scheme,
-                'name' => $scheme_name === $scheme_string ? $key : $scheme_name,
+                'scheme' => $security_scheme,
+                'name' => $scheme['name'] ?? $key,
             ];
         }
     }
@@ -616,10 +609,11 @@ class SwaggerGeneratorService
         $security = [];
         $middlewares = $this->router->gatherRouteMiddleware($route);
         foreach ($middlewares as $middleware) {
-            if (isset($this->security_schemes[$middleware])) {
-                $security[] = [
-                    $this->security_schemes[$middleware]['name'] => [],
-                ];
+            foreach($this->authMiddleware as $key => $authMiddleware)
+            {
+                if(isset($authMiddleware['class']) && $authMiddleware['class'] === $middleware) {
+                    $security[] = $this->security_schemes[$middleware]['name'] ?? $key;
+                }
             }
         }
 
@@ -702,11 +696,11 @@ class SwaggerGeneratorService
     {
         $api_key_auth = [
             'type' => 'apiKey',
-            'in' => $params[0],
+            'in' => $params['in'],
         ];
 
-        if (isset($params[1])) {
-            $api_key_auth['name'] = $params[1];
+        if ($params['in'] === 'header') {
+            $api_key_auth['name'] = $params['header_name'] ?? "apiKey";
         }
 
         return $api_key_auth;
@@ -716,7 +710,7 @@ class SwaggerGeneratorService
     {
         return [
             'type' => 'openIdConnect',
-            'openIdConnectUrl' => $params[0],
+            'openIdConnectUrl' => $params['openIdUri'] ?? ,
         ];
     }
 }
