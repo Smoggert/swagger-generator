@@ -93,7 +93,7 @@ class SwaggerGeneratorService
         foreach($this->tags as $tag){
             $swagger_file['tags'][] = [
                     'name' => $tag
-               ]
+            ];
         }
     }
 
