@@ -541,7 +541,7 @@ class SwaggerGeneratorService
                 'content' => [
                     'application/json' => [
                         'schema' => [
-                            '\$ref' => $this->createResponseBodyFromJsonResource($class_type),
+                            '$ref' => $this->createResponseBodyFromJsonResource($class_type),
                         ],
                     ],
                 ],
