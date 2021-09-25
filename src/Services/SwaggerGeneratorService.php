@@ -45,6 +45,7 @@ class SwaggerGeneratorService
     protected $security_schemes = [];
     protected $paths = [];
     protected $default_responses;
+    protected $format = 'yaml';
 
     protected $supported_formats = [
         'json',
@@ -67,7 +68,7 @@ class SwaggerGeneratorService
             $formats = implode(', ', $this->supported_formats);
             throw new \Exception("Unsupported format {$format} try: {$formats}");
         }
-
+        $this->format = $format;
         $this->output = $output;
         $swagger_file = [];
 
@@ -81,7 +82,7 @@ class SwaggerGeneratorService
         $this->addTags($swagger_file);
         $this->addPaths($swagger_file);
         $this->addComponents($swagger_file);
-        $this->printSwaggerDocsUsingFormat($swagger_file, $format);
+        $this->printSwaggerDocsUsingFormat($swagger_file);
 
         return 0;
     }
@@ -185,11 +186,11 @@ class SwaggerGeneratorService
         return $route->uri;
     }
 
-    protected function printSwaggerDocsUsingFormat(array $swagger_docs, string $format)
+    protected function printSwaggerDocsUsingFormat(array $swagger_docs)
     {
-        if ($format === 'yaml') {
+        if ($this->format === 'yaml') {
             $this->printYaml($swagger_docs);
-        } elseif ($format === 'json') {
+        } elseif ($this->format === 'json') {
             $this->printJson($swagger_docs);
         }
     }
@@ -589,6 +590,7 @@ class SwaggerGeneratorService
 
             $this->generateSummary($path);
             $this->setRouteParameters($route['route'], $path);
+            $path_name = (strpos($route['route']->uri,'/') === 0) ? $route['route']->uri : '/' . $route['route']->uri;
             $paths[$route['route']->uri][$verb] = $path;
         } catch (\Exception $exception) {
             Log::info($exception->getMessage().' :'.$this->getRouteName($route['route']), $exception->getTrace());
@@ -622,7 +624,7 @@ class SwaggerGeneratorService
 
     protected function wrapString(string $string): string
     {
-        return "'".$string."'";
+        return $this->format === 'yaml' ? "'".$string."'" : $string;
     }
 
     protected function addServers(&$swagger_docs): void
