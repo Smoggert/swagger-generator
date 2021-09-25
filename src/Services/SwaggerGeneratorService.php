@@ -547,7 +547,7 @@ class SwaggerGeneratorService
                 'description' => 'The object returned by this method.',
             ];
             
-            
+
             $response_reference = $this->createResponseBodyFromJsonResource($class_type);
 
             if(isset($response_reference)) {
@@ -556,7 +556,7 @@ class SwaggerGeneratorService
                         'schema' => [
                             '$ref' => ,
                         ],
-                    ],
+                    ]
                 ];
             }
            
