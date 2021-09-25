@@ -481,12 +481,11 @@ class SwaggerGeneratorService
         $param = [
             'name' => $name,
             'in' => 'query',
-            'type' =>  $this->getPropertyType($property_info),
             'required' => $this->isRequestParameterRequired($property_info),
         ];
         if ($type === 'array') {
-            $param['collectionFormat'] = 'multi';
-            $param['uniqueItems'] = true;
+            $param['style'] = 'form';
+            $param['explode'] = true;
         }
 
         $parameters[] = $param;
