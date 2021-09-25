@@ -141,7 +141,7 @@ class SwaggerGeneratorService
 
     protected function addScheme(string $key, array $scheme): void
     {
-        if ($security_scheme = $this->buildScheme($type, $scheme['paramaters'] ?? null)) {
+        if ($security_scheme = $this->buildScheme($scheme['type'], $scheme['paramaters'] ?? null)) {
             $this->security_schemes[$key] = [
                 'scheme' => $security_scheme,
                 'name' => $scheme['name'] ?? $key,
