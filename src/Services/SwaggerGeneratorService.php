@@ -710,7 +710,7 @@ class SwaggerGeneratorService
     {
         return [
             'type' => 'openIdConnect',
-            'openIdConnectUrl' => $params['openIdUri'] ?? ,
+            'openIdConnectUrl' => $params['openIdUri'] ?? "",
         ];
     }
 }
