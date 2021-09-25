@@ -428,16 +428,20 @@ class SwaggerGeneratorService
         return $this->wrapString('#/components/schemas/'.$resource_name);
     }
 
-    protected function trimRequestPath(string $requestName)
+    protected function trimRequestPath(string $requestName) :string
     {
         //TODO :regex replace
-        return str_replace('App\\Http\\Requests\\', '', $requestName);
+        return $this->replaceSlashes(str_replace('App\\Http\\Requests\\', '', $requestName));
     }
 
-    protected function trimResourcePath(string $requestName)
+    protected function trimResourcePath(string $requestName) :string
     {
         //TODO :regex replace
-        return str_replace('App\\Http\\Resources\\', '', $requestName);
+        return $this->replaceSlashes(str_replace('App\\Http\\Resources\\', '', $requestName));
+    }
+
+    protected function replaceSlashes(string $requestName) :string {
+        return str_replace('\\','',$requestName);
     }
 
     protected function getProperties(array $parameters): array
