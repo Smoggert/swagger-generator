@@ -336,7 +336,6 @@ class SwaggerGeneratorService
         $param = [
             'name' => $parameter->getName(),
             'in' => 'path',
-            'type' => 'string',
             'required' => ($parameter->isOptional() ? false : true),
         ];
         $url_parameters[] = $param;
