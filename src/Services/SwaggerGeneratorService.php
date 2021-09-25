@@ -153,7 +153,7 @@ class SwaggerGeneratorService
     {
         $type_method = "get{$type}AuthScheme";
         if (\method_exists($this, $type_method)) {
-            return $scheme_parameters ? $this->$type_method($scheme_parameters) : $this->type_method();
+            return $scheme_parameters ? $this->$type_method($scheme_parameters) : $this->$type_method();
         } else {
             return null;
             Log::error("Supplied auth type: {$type} is not supported.");
