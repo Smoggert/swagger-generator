@@ -11,14 +11,14 @@ You can place this in require-dev and just run the command during deploy/dev. No
 ```json
     "require-dev": {
         
-        "smoggert/swagger-generator": "@dev"
+        "smoggert/swagger-generator": "@dev-master"
     }
 ```
 ## !! Prerequisits !!
 The swagger generator looks through your code based on its controller function's return values and typed arguments. If you do no supply any it won't find any.
 The package does not parse PhPDocs. The entire reason for this package is to avoid PhpDocs.
 
-**A controller action should have typed requests, a typed resource as return value and shortname defined middleware.**
+**A controller action should have typed requests, a typed resource as return value..**
 This package relies on this strict "linting" to get it's results. If you write horrible controllers that cannot be parsed I suggest using this package instead:
 
 https://github.com/DarkaOnLine/L5-Swagger
