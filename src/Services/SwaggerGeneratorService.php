@@ -601,7 +601,7 @@ class SwaggerGeneratorService
                 'tags' => $route['tags'] ?? [],
             ];
 
-            $this->generateSummary($path);
+            $this->generateSummary($route['route'], $path);
             $this->setRouteParameters($route['route'], $path);
             $path_name = (strpos($route['route']->uri,'/') === 0) ? $route['route']->uri : '/' . $route['route']->uri;
             $paths[$path_name][$verb] = $path;
@@ -635,9 +635,9 @@ class SwaggerGeneratorService
         return $route->getPrefix() ?? null;
     }
 
-    protected function generateSummary(array &$object): void
+    protected function generateSummary(Route $route, array &$object): void
     {
-        $object['summary'] = 'SOME TEXT GETS INSERTED HERE?';
+        $object['summary'] = $route->getActionMethod();
     }
 
     protected function wrapString(string $string): string
