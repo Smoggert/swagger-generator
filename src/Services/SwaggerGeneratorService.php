@@ -8,10 +8,10 @@ use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Smoggert\SwaggerGenerator\Models\FakeModelForSwagger as Model;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -638,7 +638,7 @@ class SwaggerGeneratorService
 
     protected function generateSummary(Route $route, array &$object): void
     {
-        $object['summary'] = ucfirst(Str::snake($route->getActionMethod()," "));
+        $object['summary'] = ucfirst(Str::snake($route->getActionMethod(), ' '));
     }
 
     protected function wrapString(string $string): string
