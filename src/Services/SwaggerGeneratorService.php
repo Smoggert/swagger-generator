@@ -8,6 +8,7 @@ use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
@@ -637,7 +638,7 @@ class SwaggerGeneratorService
 
     protected function generateSummary(Route $route, array &$object): void
     {
-        $object['summary'] = $route->getActionMethod();
+        $object['summary'] = ucfirst(Str::snake($route->getActionMethod()," "));
     }
 
     protected function wrapString(string $string): string
