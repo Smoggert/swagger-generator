@@ -17,7 +17,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 class SwaggerGeneratorService
 {
     /**
-     * @var \Symfony\Component\Console\Output\OutputInterface 
+     * @var \Symfony\Component\Console\Output\OutputInterface
      */
     protected $output;
 
@@ -60,7 +60,7 @@ class SwaggerGeneratorService
         $this->routes = $router->getRoutes();
         $this->default_responses = Config::get('swagger_gen.default_responses');
         $this->output_file_path = Config::get('swagger_gen.output');
-        $this->authMiddleware =  Config::get('swagger_gen.middleware');
+        $this->authMiddleware = Config::get('swagger_gen.middleware');
     }
 
     public function generate(OutputInterface $output, string $format = 'yaml'): int
@@ -92,9 +92,9 @@ class SwaggerGeneratorService
     {
         $swagger_file['tags'] = [];
 
-        foreach($this->tags as $tag){
+        foreach ($this->tags as $tag) {
             $swagger_file['tags'][] = [
-                    'name' => $tag
+                'name' => $tag,
             ];
         }
     }
@@ -401,16 +401,15 @@ class SwaggerGeneratorService
         $reflection = (isset($type) && ! $type->isBuiltin()) ? new \ReflectionClass($type->getName()) : null;
 
         $resource_name = $reflection ? $this->trimResourcePath($type->getName()) : null;
-        
-        if(isset($resource_name))
-        {
+
+        if (isset($resource_name)) {
             if ($this->responseClassIsJsonResource($reflection)) {
                 if ($this->responseClassIsResourceCollection($reflection)) {
                     $parameters = $reflection->newInstance(new Collection())->toArray(request());
                 } else {
                     $parameters = $reflection->newInstance(new Model())->toArray(request());
                 }
-    
+
                 if (! isset($this->schemas[$resource_name])) {
                     $component = [
                         'type' => 'object',
@@ -419,25 +418,28 @@ class SwaggerGeneratorService
                     $this->schemas[$resource_name] = $component;
                 }
             }
+
             return $this->wrapString('#/components/schemas/'.$resource_name);
         }
+
         return $null;
     }
 
-    protected function trimRequestPath(string $requestName) :string
+    protected function trimRequestPath(string $requestName): string
     {
         //TODO :regex replace
         return $this->replaceSlashes(str_replace('App\\Http\\Requests\\', '', $requestName));
     }
 
-    protected function trimResourcePath(string $requestName) :string
+    protected function trimResourcePath(string $requestName): string
     {
         //TODO :regex replace
         return $this->replaceSlashes(str_replace('App\\Http\\Resources\\', '', $requestName));
     }
 
-    protected function replaceSlashes(string $requestName) :string {
-        return str_replace('\\','',$requestName);
+    protected function replaceSlashes(string $requestName): string
+    {
+        return str_replace('\\', '', $requestName);
     }
 
     protected function getProperties(array $parameters): array
@@ -482,8 +484,8 @@ class SwaggerGeneratorService
             $param['schema'] = [
                 'type' => $type,
                 'items' => [
-                    'type' => 'string'
-                ]
+                    'type' => 'string',
+                ],
             ];
         }
 
@@ -544,20 +546,18 @@ class SwaggerGeneratorService
             $response = [
                 'description' => 'The object returned by this method.',
             ];
-            
 
             $response_reference = $this->createResponseBodyFromJsonResource($class_type);
 
-            if(isset($response_reference)) {
+            if (isset($response_reference)) {
                 $response['content'] = [
                     'application/json' => [
                         'schema' => [
                             '$ref' => $response_reference,
-                        ]
-                    ]
+                        ],
+                    ],
                 ];
             }
-           
 
             $responses[$this->wrapString('200')] = $response;
         }
@@ -603,12 +603,13 @@ class SwaggerGeneratorService
 
             $this->generateSummary($route['route'], $path);
             $this->setRouteParameters($route['route'], $path);
-            $path_name = (strpos($route['route']->uri,'/') === 0) ? $route['route']->uri : '/' . $route['route']->uri;
+            $path_name = (strpos($route['route']->uri, '/') === 0) ? $route['route']->uri : '/'.$route['route']->uri;
             $paths[$path_name][$verb] = $path;
         } catch (\Exception $exception) {
             Log::info($exception->getMessage().' :'.$this->getRouteName($route['route']), $exception->getTrace());
         }
     }
+
     /**
      * Not supporting scopes atm.
      */
@@ -617,11 +618,10 @@ class SwaggerGeneratorService
         $security = [];
         $middlewares = $this->router->gatherRouteMiddleware($route);
         foreach ($middlewares as $middleware) {
-            foreach($this->authMiddleware as $key => $authMiddleware)
-            {
-                if(isset($authMiddleware['class']) && $authMiddleware['class'] === $middleware) {
+            foreach ($this->authMiddleware as $key => $authMiddleware) {
+                if (isset($authMiddleware['class']) && $authMiddleware['class'] === $middleware) {
                     $security[] = [
-                        $authMiddleware['name'] ?? $key => []
+                        $authMiddleware['name'] ?? $key => [],
                     ];
                 }
             }
@@ -709,8 +709,7 @@ class SwaggerGeneratorService
             'in' => $params['in'],
         ];
 
-       $api_key_auth['name'] = $params['name'] ?? "apiKey";
-
+        $api_key_auth['name'] = $params['name'] ?? 'apiKey';
 
         return $api_key_auth;
     }
@@ -719,7 +718,7 @@ class SwaggerGeneratorService
     {
         return [
             'type' => 'openIdConnect',
-            'openIdConnectUrl' => $params['openIdUri'] ?? "",
+            'openIdConnectUrl' => $params['openIdUri'] ?? '',
         ];
     }
 }
