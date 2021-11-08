@@ -709,9 +709,8 @@ class SwaggerGeneratorService
             'in' => $params['in'],
         ];
 
-        if ($params['in'] === 'header') {
-            $api_key_auth['name'] = $params['header_name'] ?? "apiKey";
-        }
+       $api_key_auth['name'] = $params['name'] ?? "apiKey";
+
 
         return $api_key_auth;
     }
