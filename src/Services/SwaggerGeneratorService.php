@@ -423,7 +423,7 @@ class SwaggerGeneratorService
             return $this->wrapString('#/components/schemas/'.$resource_name);
         }
 
-        return $null;
+        return null;
     }
 
     protected function trimRequestPath(string $requestName): string
