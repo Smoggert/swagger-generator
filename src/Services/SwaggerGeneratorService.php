@@ -10,6 +10,7 @@ use Illuminate\Routing\Router;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\In;
@@ -65,7 +66,7 @@ class SwaggerGeneratorService
         $this->authMiddleware = Config::get('swagger_gen.middleware');
     }
 
-    public function generate(OutputInterface $output, string $format = 'yaml'): int
+    public function generate(OutputInterface $output, string $format = 'json'): int
     {
         if (! in_array($format, $this->supported_formats)) {
             $formats = implode(', ', $this->supported_formats);
@@ -192,7 +193,12 @@ class SwaggerGeneratorService
 
     protected function printJson(array $swagger_docs)
     {
-        $this->output->write(json_encode($swagger_docs, JSON_PRETTY_PRINT + JSON_UNESCAPED_SLASHES), true);
+        $stringify = json_encode($swagger_docs, JSON_PRETTY_PRINT + JSON_UNESCAPED_SLASHES);
+        $this->output->write($stringify, true);
+
+        if($this->output_file_path) {
+            File::put($this->output_file_path,$stringify);
+        }
     }
 
     // PECL: Yaml isn't a default php-package. So screw this I guess.
@@ -612,8 +618,8 @@ class SwaggerGeneratorService
     protected function getMethodReturnClass(\ReflectionMethod $method): ?\ReflectionType
     {
         if (! $method->hasReturnType()) {
-            return null;
             Log::error('Return object from '.$method->name.' not typed. Unable to obtain response object.');
+            return null;
         } else {
             return $method->getReturnType();
         }
