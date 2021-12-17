@@ -7,7 +7,7 @@ use Smoggert\SwaggerGenerator\Services\SwaggerGeneratorService;
 
 class GenerateSwaggerCommand extends Command
 {
-    protected $signature = 'swagger:generate {--format=yaml}';
+    protected $signature = 'swagger:generate {--format=json}';
 
     protected $description = 'Generate swagger documentation based on your api routes';
 
