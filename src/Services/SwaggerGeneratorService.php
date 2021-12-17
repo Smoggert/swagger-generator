@@ -12,6 +12,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\In;
 use Smoggert\SwaggerGenerator\Models\FakeModelForSwagger as Model;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -156,8 +157,8 @@ class SwaggerGeneratorService
         if (\method_exists($this, $type_method)) {
             return $scheme_parameters ? $this->$type_method($scheme_parameters) : $this->$type_method();
         } else {
-            return null;
             Log::error("Supplied auth type: {$type} is not supported.");
+            return null;
         }
     }
 
@@ -391,6 +392,7 @@ class SwaggerGeneratorService
                 'required' => $this->getRequiredParameters($parameters),
                 'properties' => $this->getProperties($parameters),
             ];
+
             $this->schemas[$requestName] = $component;
         }
 
@@ -456,7 +458,7 @@ class SwaggerGeneratorService
     protected function addQueryParameters(array $properties, array &$component): void
     {
         foreach ($properties as $property_name => $property_info) {
-            $this->addQueryParameter($property_name, $property_info, $component);
+            $this->addQueryParameter($property_name, $property_info, $component, $properties);
         }
     }
 
@@ -469,7 +471,7 @@ class SwaggerGeneratorService
         $component[$property_name] = $property;
     }
 
-    protected function addQueryParameter($property_name, $property_info, &$parameters)
+    protected function addQueryParameter($property_name, $property_info,array &$parameters,array &$other_properties)
     {
         $type = $this->getPropertyType($property_info);
         $name = $type === 'array' ? $property_name.'[]' : $property_name;
@@ -479,6 +481,7 @@ class SwaggerGeneratorService
             'in' => 'query',
             'required' => $this->isRequestParameterRequired($property_info),
         ];
+
         if ($type === 'array') {
             $param['style'] = 'form';
             $param['explode'] = true;
@@ -486,11 +489,42 @@ class SwaggerGeneratorService
                 'type' => $type,
                 'items' => [
                     'type' => 'string',
-                ],
+                ]
             ];
+
+            $enum = $this->findSubProperties($property_name, $other_properties);
+            if(! empty($enum)) {
+                $param['schema']['items']['enum'] = $enum;
+            }
         }
 
         $parameters[] = $param;
+    }
+
+    protected function findSubProperties(string $property_name, array &$other_properties) : array
+    {
+        $subs = [];
+        if(key_exists("{$property_name}.*",$other_properties)) {
+            $subs =  $this->getEnumFromRule($other_properties["{$property_name}.*"]);
+        }
+        return $subs;
+    }
+
+    protected function getEnumFromRule($rules) : array
+    {
+        if (is_string($rules)) {
+            $rules = explode('|', $rules);
+        }
+
+        foreach($rules as $rule)
+        {
+            if(is_object($rule) && get_class($rule) === In::class)
+            {
+                return explode(",",str_replace(["in:",'"'],"",(string) $rule));
+            }
+        }
+
+        return [];
     }
 
     protected function getPropertyType($info): string
@@ -509,7 +543,7 @@ class SwaggerGeneratorService
             } elseif (str_contains($info, 'int')) {
                 Log::alert('Possible use of `int´ statement. Due to possible mismatches this type should be declared as integer.');
 
-                return 'integer';
+                return 'string';
             }
         }
         //default to string
