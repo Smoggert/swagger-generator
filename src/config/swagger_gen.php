@@ -21,11 +21,9 @@ return [
         ],
     ],
 
-    'output' => [
-        'path' => storage_path('text.txt'),
-    ],
+    'output' => storage_path('text.txt'),
 
-    /* -----------------------------
+/* -----------------------------
     *  Define your allowed routes
     *  -----------------------------
     *   This defines the prefixes that will be required to index the routes from your application.
