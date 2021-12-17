@@ -473,6 +473,10 @@ class SwaggerGeneratorService
 
     protected function addQueryParameter($property_name, $property_info,array &$parameters,array &$other_properties)
     {
+        if(str_contains("*", $property_name) && $this->getEnumFromRule($property_info)) {
+            return;
+        }
+
         $type = $this->getPropertyType($property_info);
         $name = $type === 'array' ? $property_name.'[]' : $property_name;
 
