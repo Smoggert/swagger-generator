@@ -120,6 +120,7 @@ class SwaggerGeneratorService
                     $non_excluded_routes->add($route);
                 }
             }
+            $this->routes = $non_excluded_routes;
         }
 
         foreach ($allowed_routes as $allowed_route) {
