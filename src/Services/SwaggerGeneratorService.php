@@ -113,7 +113,8 @@ class SwaggerGeneratorService
         $all_tags = new Collection();
 
         foreach ($excluded_routes as $excluded_route) {
-            $excluded = str_replace('{id}', "[a-zA-Z0-9-:\}\{]+", $excluded_route);
+            $escaped_excluded_route = str_replace('/', '\/', $excluded_route);
+            $excluded = str_replace('{id}', "[a-zA-Z0-9-:\}\{]+", $escaped_excluded_route);
             foreach ($this->routes as $route) {
                 if (! preg_match('/'.$excluded.'/s', $route->uri)) {
                     $non_excluded_routes->add($route);
