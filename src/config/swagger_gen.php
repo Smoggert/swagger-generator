@@ -21,7 +21,7 @@ return [
         ],
     ],
 
-    'output' => storage_path('text.txt'),
+    //'output' => storage_path('text.txt'),
 
 /* -----------------------------
     *  Define your allowed routes
