@@ -23,15 +23,25 @@ return [
 
     //'output' => storage_path('text.txt'),
 
-/* -----------------------------
+    /* -----------------------------
     *  Define your allowed routes
     *  -----------------------------
     *   This defines the prefixes that will be required to index the routes from your application.
-    *   You can index the tag related to the prefix with /{$tag}
+    *   You can index the tag related to the prefix with /{$tag}, skip resource related parameters with {id}
     */
 
     'allowed' => [
         'api/v1/{$tag}',
+    ],
+
+    /* -----------------------------
+    *  Define your excluded routes
+    *  -----------------------------
+    *   This defines the exact routes that won't be included.
+    *   Indicate resource related parameters with {id}
+    */
+    'exclude' => [
+          // 'api/v1/resources/{id}'
     ],
 
     /* -----------------------------

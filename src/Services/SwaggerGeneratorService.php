@@ -6,6 +6,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Routing\Route;
+use Illuminate\Routing\RouteCollection;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
@@ -104,17 +105,28 @@ class SwaggerGeneratorService
 
     protected function filterRoutes(): void
     {
-        $allowed_routes = Config::get('swagger_gen.allowed');
+        $non_excluded_routes = new RouteCollection();
 
+        $allowed_routes = Config::get('swagger_gen.allowed');
+        $excluded_routes = Config::get('swagger_gen.excluded');
         $filtered_routes = [];
         $all_tags = new Collection();
+
+        foreach ($excluded_routes as $excluded_route) {
+            $excluded = str_replace('{id}', "[a-zA-Z0-9-:\}\{]+", $excluded_route);
+            foreach ($this->routes as $route) {
+                if (! preg_match('/'.$excluded.'/s', $route->uri)) {
+                    $non_excluded_routes->add($route);
+                }
+            }
+        }
 
         foreach ($allowed_routes as $allowed_route) {
             $stripped_allowed_route = str_replace('{$tag}', '([a-zA-Z0-9-]+)', $allowed_route);
             $escaped_allowed_route = str_replace('/', '\/', $stripped_allowed_route);
             $twice_stripped_allowed_route = str_replace('{id}', "[a-zA-Z0-9-:\}\{]+", $escaped_allowed_route);
 
-            foreach ($this->routes as $route) {
+            foreach ($non_excluded_routes as $route) {
                 $tags = [];
                 if (preg_match('/'.$twice_stripped_allowed_route.'/s', $route->uri, $tags)) {
                     array_shift($tags);
@@ -131,6 +143,7 @@ class SwaggerGeneratorService
                 }
             }
         }
+
         $this->filtered_routes = $filtered_routes;
         $this->tags = $all_tags->unique()->values()->toArray();
     }
