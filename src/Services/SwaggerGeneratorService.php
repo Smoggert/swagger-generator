@@ -105,7 +105,6 @@ class SwaggerGeneratorService
 
     protected function filterRoutes(): void
     {
-        $non_excluded_routes = new RouteCollection();
 
         $allowed_routes = Config::get('swagger_gen.allowed');
         $excluded_routes = Config::get('swagger_gen.excluded');
@@ -113,6 +112,8 @@ class SwaggerGeneratorService
         $all_tags = new Collection();
 
         foreach ($excluded_routes as $excluded_route) {
+            $non_excluded_routes = new RouteCollection();
+
             $escaped_excluded_route = str_replace('/', '\/', $excluded_route);
             $excluded = str_replace('{id}', "[a-zA-Z0-9-:\}\{]+", $escaped_excluded_route);
             foreach ($this->routes as $route) {
@@ -128,7 +129,7 @@ class SwaggerGeneratorService
             $escaped_allowed_route = str_replace('/', '\/', $stripped_allowed_route);
             $twice_stripped_allowed_route = str_replace('{id}', "[a-zA-Z0-9-:\}\{]+", $escaped_allowed_route);
 
-            foreach ($non_excluded_routes as $route) {
+            foreach ($this->routes as $route) {
                 $tags = [];
                 if (preg_match('/'.$twice_stripped_allowed_route.'/s', $route->uri, $tags)) {
                     array_shift($tags);
