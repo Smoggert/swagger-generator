@@ -50,6 +50,7 @@ class SwaggerGeneratorService
     protected $paths = [];
     protected $default_responses;
     protected $format = 'yaml';
+    protected $auth_middleware;
 
     protected $supported_formats = [
         'json',
@@ -64,7 +65,7 @@ class SwaggerGeneratorService
         $this->routes = $router->getRoutes();
         $this->default_responses = Config::get('swagger_gen.default_responses');
         $this->output_file_path = Config::get('swagger_gen.output');
-        $this->authMiddleware = Config::get('swagger_gen.middleware');
+        $this->auth_middleware = Config::get('swagger_gen.middleware');
     }
 
     public function generate(OutputInterface $output, string $format = 'json'): int
@@ -153,14 +154,14 @@ class SwaggerGeneratorService
 
     public function addAuthentication(&$swagger_docs)
     {
-        foreach ($this->authMiddleware as $key => $middleware) {
+        foreach ($this->auth_middleware as $key => $middleware) {
             $this->addMiddleware($key, $middleware);
         }
     }
 
     protected function addMiddleware(string $key, array $middleware): void
     {
-            $this->security_schemes[$key] = $middleware['schema'];
+        $this->security_schemes[$key] = $middleware['schema'];
     }
 
     protected function addPaths(&$swagger_docs)
@@ -375,18 +376,8 @@ class SwaggerGeneratorService
     {
         $components = [];
         $components['schemas'] = $this->schemas;
-        $components['securitySchemes'] = $this->mappedschemes();
+        $components['securitySchemes'] = $this->security_schemes;
         $swagger_docs['components'] = $components;
-    }
-
-    protected function mappedSchemes(): array
-    {
-        $schemes = [];
-        foreach ($this->security_schemes as $security_scheme) {
-            $schemes[$security_scheme['name']] = $security_scheme['scheme'];
-        }
-
-        return $schemes;
     }
 
     protected function createRequestBodyComponent(array $parameters, string $requestName): string
@@ -663,10 +654,10 @@ class SwaggerGeneratorService
         $security = [];
         $middlewares = $this->router->gatherRouteMiddleware($route);
         foreach ($middlewares as $middleware) {
-            foreach ($this->authMiddleware as $key => $authMiddleware) {
-                if (isset($authMiddleware['class']) && $authMiddleware['class'] === $middleware) {
+            foreach ($this->auth_middleware as $key => $auth_middleware) {
+                if (isset($auth_middleware['class']) && $auth_middleware['class'] === $middleware) {
                     $security[] = [
-                        $authMiddleware['name'] ?? $key => [],
+                        $auth_middleware['schema']['name'] ?? $key => [],
                     ];
                 }
             }
