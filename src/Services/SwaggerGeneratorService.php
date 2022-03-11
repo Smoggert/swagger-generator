@@ -385,6 +385,7 @@ class SwaggerGeneratorService
         $schemes = [];
         foreach ($this->security_schemes as $security_scheme) {
             $schemes[$security_scheme['name']] = $security_scheme;
+            unset($schemes[$security_scheme['name']]['name']);
         }
 
         return $schemes;
