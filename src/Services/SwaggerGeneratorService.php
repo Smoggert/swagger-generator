@@ -376,8 +376,18 @@ class SwaggerGeneratorService
     {
         $components = [];
         $components['schemas'] = $this->schemas;
-        $components['securitySchemes'] = $this->security_schemes;
+        $components['securitySchemes'] = $this->mappedschemes();
         $swagger_docs['components'] = $components;
+    }
+
+    protected function mappedSchemes(): array
+    {
+        $schemes = [];
+        foreach ($this->security_schemes as $security_scheme) {
+            $schemes[$security_scheme['name']] = $security_scheme['scheme'];
+        }
+
+        return $schemes;
     }
 
     protected function createRequestBodyComponent(array $parameters, string $requestName): string
