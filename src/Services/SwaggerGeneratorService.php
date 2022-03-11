@@ -153,30 +153,14 @@ class SwaggerGeneratorService
 
     public function addAuthentication(&$swagger_docs)
     {
-        foreach ($this->authMiddleware as $key => $scheme) {
-            $this->addScheme($key, $scheme);
+        foreach ($this->authMiddleware as $key => $middleware) {
+            $this->addMiddleware($key, $middleware);
         }
     }
 
-    protected function addScheme(string $key, array $scheme): void
+    protected function addMiddleware(string $key, array $middleware): void
     {
-        if ($security_scheme = $this->buildScheme($scheme['type'], $scheme['parameters'] ?? null)) {
-            $this->security_schemes[$key] = [
-                'scheme' => $security_scheme,
-                'name' => $scheme['name'] ?? $key,
-            ];
-        }
-    }
-
-    protected function buildScheme(string $type, ?array $scheme_parameters): ?array
-    {
-        $type_method = "get{$type}AuthScheme";
-        if (\method_exists($this, $type_method)) {
-            return $scheme_parameters ? $this->$type_method($scheme_parameters) : $this->$type_method();
-        } else {
-            Log::error("Supplied auth type: {$type} is not supported.");
-            return null;
-        }
+            $this->security_schemes[$key] = $middleware['schema'];
     }
 
     protected function addPaths(&$swagger_docs)
@@ -745,41 +729,5 @@ class SwaggerGeneratorService
     protected function addInfo(&$object): void
     {
         $object['info'] = Config::get('swagger_gen.info');
-    }
-
-    protected function getBasicAuthScheme(): array
-    {
-        return [
-            'type' => 'http',
-            'scheme' => 'basic',
-        ];
-    }
-
-    protected function getBearerAuthScheme(): array
-    {
-        return [
-            'type' => 'http',
-            'scheme' => 'bearer',
-        ];
-    }
-
-    protected function getApiKeyAuthScheme(array $params): array
-    {
-        $api_key_auth = [
-            'type' => 'apiKey',
-            'in' => $params['in'],
-        ];
-
-        $api_key_auth['name'] = $params['name'] ?? 'apiKey';
-
-        return $api_key_auth;
-    }
-
-    protected function getOpenIDAuthScheme(array $params)
-    {
-        return [
-            'type' => 'openIdConnect',
-            'openIdConnectUrl' => $params['openIdUri'] ?? '',
-        ];
     }
 }
