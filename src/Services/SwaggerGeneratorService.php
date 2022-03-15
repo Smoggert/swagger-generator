@@ -424,7 +424,7 @@ class SwaggerGeneratorService
                 if (! isset($this->schemas[$resource_name])) {
                     $component = [
                         'type' => 'object',
-                        'properties' => $this->getProperties($parameters),
+                        'properties' => $this->getPropertiesFromResource($parameters),
                     ];
                     $this->schemas[$resource_name] = $component;
                 }
@@ -453,11 +453,16 @@ class SwaggerGeneratorService
         return str_replace('\\', '', $requestName);
     }
 
-    protected function getProperties(array $parameters): array
+    protected function getPropertiesFromResource(array $parameters) : array
+    {
+        return $this->getProperties($parameters, true);
+    }
+
+    protected function getProperties(array $parameters, bool $is_resource = false): array
     {
         $properties = [];
         foreach ($parameters as $parameter_name => $parameter_info) {
-            $this->addProperty($parameter_name, $parameter_info, $properties);
+            $this->addProperty($parameter_name, $is_resource ? "string" : $parameter_info , $properties);
         }
 
         return $properties;
