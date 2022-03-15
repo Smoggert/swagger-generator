@@ -484,7 +484,7 @@ class SwaggerGeneratorService
     {
         $property_rule = is_string($property_rule) ? explode('|',$property_rule) : $property_rule;
 
-        if($this->hasSubParameters($property_rule)) {
+        if(! $this->hasSubParameters($property_rule)) {
             $property = [
                 'type' => $this->getPropertyType($property_rule),
             ];
