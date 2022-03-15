@@ -581,26 +581,46 @@ class SwaggerGeneratorService
         return [];
     }
 
-    protected function getPropertyType($info): string
+    protected function getPropertyType($rule): string
     {
-        if (is_string($info)) {
-            if (str_contains($info, 'string') || str_contains($info, 'date') || str_contains($info, 'email') || str_contains($info, 'ip')) {
-                return 'string';
-            } elseif (str_contains($info, 'integer')) {
-                return 'integer';
-            } elseif (str_contains($info, 'numeric')) {
-                return 'number';
-            } elseif (str_contains($info, 'bool')) {
-                return 'boolean';
-            } elseif (str_contains($info, 'array')) {
-                return 'array';
-            } elseif (str_contains($info, 'int')) {
-                Log::alert('Possible use of `int´ statement. Due to possible mismatches this type should be declared as integer.');
-
-                return 'string';
-            }
+        if (is_string($rule)) {
+            $rule = explode($rule, '|');
         }
-        //default to string
+
+        if(in_array([
+            'string',
+            'date',
+            'email',
+            'ip'
+        ],$rule)) {
+            return 'string';
+        };
+
+        if(in_array([
+            'integer',
+            'int'
+        ],$rule)) {
+            return 'integer';
+        };
+
+        if(in_array([
+            'numeric'
+        ],$rule)) {
+            return 'number';
+        };
+
+        if(in_array([
+            'boolean'
+        ],$rule)) {
+            return 'boolean';
+        };
+
+        if(in_array([
+            'array'
+        ],$rule)) {
+            return 'array';
+        };
+
         return 'string';
     }
 
