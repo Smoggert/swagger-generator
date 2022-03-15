@@ -528,7 +528,7 @@ class SwaggerGeneratorService
         }
 
         $type = $this->getPropertyType($property_info);
-        $name = $type === 'array' ? $property_name.'[]' : $property_name;
+        $name = ($type === 'array') ? $property_name.'[]' : $property_name;
 
         $param = [
             'name' => $name,
@@ -584,7 +584,7 @@ class SwaggerGeneratorService
     protected function getPropertyType($rule): string
     {
         if (is_string($rule)) {
-            $rule = explode($rule, '|');
+            $rule = explode( '|',$rule);
         }
 
         if(in_array('numeric',$rule)) {
