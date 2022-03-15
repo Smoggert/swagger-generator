@@ -462,7 +462,10 @@ class SwaggerGeneratorService
     {
         $properties = [];
         foreach ($parameters as $parameter_name => $parameter_info) {
-            $this->addProperty($parameter_name, $is_resource ? "string" : $parameter_info , $properties);
+            if(! is_numeric($parameter_name))
+            {
+                $this->addProperty($parameter_name, $is_resource ? "string" : $parameter_info , $properties);
+            }
         }
 
         return $properties;
@@ -507,6 +510,11 @@ class SwaggerGeneratorService
         } else {
             $property = [
                 'type' => 'array',
+                'items' => [
+                    'type' => 'object',
+                    'required' => $this->getRequiredParameters($property_rule),
+                    'properties' => $this->getProperties($property_rule),
+                ]
             ];
         }
 
