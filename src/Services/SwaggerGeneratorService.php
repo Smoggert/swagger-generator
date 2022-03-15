@@ -587,39 +587,23 @@ class SwaggerGeneratorService
             $rule = explode($rule, '|');
         }
 
-        if(in_array([
-            'string',
-            'date',
-            'email',
-            'ip'
-        ],$rule)) {
-            return 'string';
-        };
-
-        if(in_array([
-            'integer',
-            'int'
-        ],$rule)) {
-            return 'integer';
-        };
-
-        if(in_array([
-            'numeric'
-        ],$rule)) {
+        if(in_array('numeric',$rule)) {
             return 'number';
         };
 
-        if(in_array([
-            'boolean'
-        ],$rule)) {
+        if(in_array('boolean',$rule)) {
             return 'boolean';
         };
 
-        if(in_array([
-            'array'
-        ],$rule)) {
+        if(in_array('array',$rule)) {
             return 'array';
         };
+
+        if(in_array('integer',$rule) || in_array('int',$rule)) {
+            return 'integer';
+        };
+
+        // default to string !
 
         return 'string';
     }
