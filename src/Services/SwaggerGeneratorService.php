@@ -495,7 +495,9 @@ class SwaggerGeneratorService
         if(! $this->hasObjects($property_rule)) {
             if($this->hasSubParameters($property_rule)) {
                 $property = [
-                    'type' => 'array',
+                    'type' => 'object',
+                    'required' => $this->getRequiredParameters($property_rule),
+                    'properties' => $this->getProperties($property_rule),
                 ];
             } else {
                 $property = [
@@ -504,9 +506,7 @@ class SwaggerGeneratorService
             }
         } else {
             $property = [
-                'type' => 'object',
-                'required' => $this->getRequiredParameters($property_rule),
-                'properties' => $this->getProperties($property_rule),
+                'type' => 'array',
             ];
         }
 
