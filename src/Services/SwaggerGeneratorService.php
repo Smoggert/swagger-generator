@@ -475,23 +475,33 @@ class SwaggerGeneratorService
         }
     }
 
-    protected function hasSubParameters(array $array) : bool
+    protected function hasObjects(array $array) : bool
     {
         return isset($array['*']);
+    }
+
+    protected function hasSubParameters(array $array) : bool
+    {
+        if (empty($array)) {
+            return false;
+        }
+        return array_keys($array) !== range(0, count($array) - 1);
     }
 
     protected function addProperty(string $property_name, $property_rule, &$component): void
     {
         $property_rule = is_string($property_rule) ? explode('|',$property_rule) : $property_rule;
 
-        if(! $this->hasSubParameters($property_rule)) {
-            $property = [
-                'type' => $this->getPropertyType($property_rule),
-            ];
-        } elseif(! $this->hasSubParameters($property_rule['*'])) {
-            $property = [
-                'type' => 'array',
-            ];
+        if(! $this->hasObjects($property_rule)) {
+            if($this->hasSubParameters($property_rule)) {
+                $property = [
+                    'type' => 'array',
+                ];
+            } else {
+                $property = [
+                    'type' => $this->getPropertyType($property_rule),
+                ];
+            }
         } else {
             $property = [
                 'type' => 'object',
