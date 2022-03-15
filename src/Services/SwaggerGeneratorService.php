@@ -369,7 +369,7 @@ class SwaggerGeneratorService
 
     protected function getRequestParameters(\ReflectionClass $request): array
     {
-        return $request->newInstance()->rules();
+        return Arr::undot($request->newInstance()->rules());
     }
 
     protected function addComponents(array &$swagger_docs): void
@@ -470,11 +470,21 @@ class SwaggerGeneratorService
         }
     }
 
-    protected function addProperty(string $property_name, $property_info, &$component): void
+    protected function addProperty(string $property_name, $property_rule, &$component): void
     {
-        $property = [
-            'type' => $this->getPropertyType($property_info),
-        ];
+        $property_rule = is_string($property_rule) ? explode('|',$property_rule) : $property_rule;
+
+        if(! array_diff_key($property_rule,array_keys(array_keys($property_rule)))) {
+            $property = [
+                'type' => $this->getPropertyType($property_rule),
+            ];
+        } else {
+            $property = [
+                'type' => 'object',
+                'required' => $this->getRequiredParameters($property_rule),
+                'properties' => $this->getProperties($property_rule),
+            ];
+        }
 
         $component[$property_name] = $property;
     }
