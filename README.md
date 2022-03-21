@@ -33,10 +33,10 @@ If you want to specify which routes you'd like to include, (among other things),
 ```
 
 ## Usage
-Available in json & yaml format, default to yaml.
+Available in jsonformat.
 
 ```bash
-  php artisan swagger:generate --format=json
+  php artisan swagger:generate
 ```
 
 ## Contributing
