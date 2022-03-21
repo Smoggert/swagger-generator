@@ -416,7 +416,7 @@ class SwaggerGeneratorService
         if (isset($resource_name)) {
             if ($this->responseClassIsJsonResource($reflection)) {
                 if ($this->responseClassIsResourceCollection($reflection)) {
-                    $parameters = $reflection->newInstance(new Collection())->toArray(request());
+                    $parameters = $reflection->newInstance(new Collection([new Model()]))->toArray(request());
                 } else {
                     $parameters = $reflection->newInstance(new Model())->toArray(request());
                 }
