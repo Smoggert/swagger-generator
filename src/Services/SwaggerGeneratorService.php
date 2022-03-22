@@ -106,7 +106,6 @@ class SwaggerGeneratorService
 
     protected function filterRoutes(): void
     {
-
         $allowed_routes = Config::get('swagger_gen.allowed');
         $excluded_routes = Config::get('swagger_gen.excluded');
         $filtered_routes = [];
@@ -197,8 +196,8 @@ class SwaggerGeneratorService
         $stringify = json_encode($swagger_docs, JSON_PRETTY_PRINT + JSON_UNESCAPED_SLASHES);
         $this->output->write($stringify, true);
 
-        if($this->output_file_path) {
-            File::put($this->output_file_path,$stringify);
+        if ($this->output_file_path) {
+            File::put($this->output_file_path, $stringify);
         }
     }
 
@@ -453,7 +452,7 @@ class SwaggerGeneratorService
         return str_replace('\\', '', $requestName);
     }
 
-    protected function getPropertiesFromResource(array $parameters) : array
+    protected function getPropertiesFromResource(array $parameters): array
     {
         return $this->getProperties($parameters, true);
     }
@@ -462,9 +461,8 @@ class SwaggerGeneratorService
     {
         $properties = [];
         foreach ($parameters as $parameter_name => $parameter_info) {
-            if(! is_numeric($parameter_name))
-            {
-                $this->addProperty($parameter_name, $is_resource ? "string" : $parameter_info , $properties);
+            if (! is_numeric($parameter_name)) {
+                $this->addProperty($parameter_name, $is_resource ? 'string' : $parameter_info, $properties);
             }
         }
 
@@ -478,25 +476,26 @@ class SwaggerGeneratorService
         }
     }
 
-    protected function hasObjects(array $array) : bool
+    protected function hasObjects(array $array): bool
     {
         return isset($array['*']);
     }
 
-    protected function hasSubParameters(array $array) : bool
+    protected function hasSubParameters(array $array): bool
     {
         if (empty($array)) {
             return false;
         }
+
         return array_keys($array) !== range(0, count($array) - 1);
     }
 
     protected function addProperty(string $property_name, $property_rule, &$component): void
     {
-        $property_rule = is_string($property_rule) ? explode('|',$property_rule) : $property_rule;
+        $property_rule = is_string($property_rule) ? explode('|', $property_rule) : $property_rule;
 
-        if(! $this->hasObjects($property_rule)) {
-            if($this->hasSubParameters($property_rule)) {
+        if (! $this->hasObjects($property_rule)) {
+            if ($this->hasSubParameters($property_rule)) {
                 $property = [
                     'type' => 'object',
                     'required' => $this->getRequiredParameters($property_rule),
@@ -514,16 +513,16 @@ class SwaggerGeneratorService
                     'type' => 'object',
                     'required' => $this->getRequiredParameters($property_rule),
                     'properties' => $this->getProperties($property_rule),
-                ]
+                ],
             ];
         }
 
         $component[$property_name] = $property;
     }
 
-    protected function addQueryParameter($property_name, $property_info,array &$parameters,array &$other_properties)
+    protected function addQueryParameter($property_name, $property_info, array &$parameters, array &$other_properties)
     {
-        if(str_ends_with($property_name,".*")) {
+        if (str_ends_with($property_name, '.*')) {
             return;
         }
 
@@ -543,11 +542,11 @@ class SwaggerGeneratorService
                 'type' => $type,
                 'items' => [
                     'type' => 'string',
-                ]
+                ],
             ];
 
             $enum = $this->findSubProperties($property_name, $other_properties);
-            if(! empty($enum)) {
+            if (! empty($enum)) {
                 $param['schema']['items']['enum'] = $enum;
             }
         }
@@ -555,26 +554,25 @@ class SwaggerGeneratorService
         $parameters[] = $param;
     }
 
-    protected function findSubProperties(string $property_name, array &$other_properties) : array
+    protected function findSubProperties(string $property_name, array &$other_properties): array
     {
         $subs = [];
-        if(key_exists("{$property_name}.*",$other_properties)) {
-            $subs =  $this->getEnumFromRule($other_properties["{$property_name}.*"]);
+        if (key_exists("{$property_name}.*", $other_properties)) {
+            $subs = $this->getEnumFromRule($other_properties["{$property_name}.*"]);
         }
+
         return $subs;
     }
 
-    protected function getEnumFromRule($rules) : array
+    protected function getEnumFromRule($rules): array
     {
         if (is_string($rules)) {
             $rules = explode('|', $rules);
         }
 
-        foreach($rules as $rule)
-        {
-            if(is_object($rule) && get_class($rule) === In::class)
-            {
-                return explode(",",str_replace(["in:",'"'],"",(string) $rule));
+        foreach ($rules as $rule) {
+            if (is_object($rule) && get_class($rule) === In::class) {
+                return explode(',', str_replace(['in:', '"'], '', (string) $rule));
             }
         }
 
@@ -584,24 +582,24 @@ class SwaggerGeneratorService
     protected function getPropertyType($rule): string
     {
         if (is_string($rule)) {
-            $rule = explode( '|',$rule);
+            $rule = explode('|', $rule);
         }
 
-        if(in_array('numeric',$rule)) {
+        if (in_array('numeric', $rule)) {
             return 'number';
-        };
+        }
 
-        if(in_array('boolean',$rule)) {
+        if (in_array('boolean', $rule)) {
             return 'boolean';
-        };
+        }
 
-        if(in_array('array',$rule)) {
+        if (in_array('array', $rule)) {
             return 'array';
-        };
+        }
 
-        if(in_array('integer',$rule) || in_array('int',$rule)) {
+        if (in_array('integer', $rule) || in_array('int', $rule)) {
             return 'integer';
-        };
+        }
 
         // default to string !
 
@@ -667,6 +665,7 @@ class SwaggerGeneratorService
     {
         if (! $method->hasReturnType()) {
             Log::error('Return object from '.$method->name.' not typed. Unable to obtain response object.');
+
             return null;
         } else {
             return $method->getReturnType();
