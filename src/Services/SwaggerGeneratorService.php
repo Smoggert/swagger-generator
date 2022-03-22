@@ -6,12 +6,15 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Routing\Route;
+use Illuminate\Routing\RouteCollection;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\In;
 use Smoggert\SwaggerGenerator\Models\FakeModelForSwagger as Model;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -47,6 +50,7 @@ class SwaggerGeneratorService
     protected $paths = [];
     protected $default_responses;
     protected $format = 'yaml';
+    protected $auth_middleware;
 
     protected $supported_formats = [
         'json',
@@ -61,10 +65,10 @@ class SwaggerGeneratorService
         $this->routes = $router->getRoutes();
         $this->default_responses = Config::get('swagger_gen.default_responses');
         $this->output_file_path = Config::get('swagger_gen.output');
-        $this->authMiddleware = Config::get('swagger_gen.middleware');
+        $this->auth_middleware = Config::get('swagger_gen.middleware');
     }
 
-    public function generate(OutputInterface $output, string $format = 'yaml'): int
+    public function generate(OutputInterface $output, string $format = 'json'): int
     {
         if (! in_array($format, $this->supported_formats)) {
             $formats = implode(', ', $this->supported_formats);
@@ -103,9 +107,22 @@ class SwaggerGeneratorService
     protected function filterRoutes(): void
     {
         $allowed_routes = Config::get('swagger_gen.allowed');
-
+        $excluded_routes = Config::get('swagger_gen.excluded');
         $filtered_routes = [];
         $all_tags = new Collection();
+
+        foreach ($excluded_routes as $excluded_route) {
+            $non_excluded_routes = new RouteCollection();
+
+            $escaped_excluded_route = str_replace('/', '\/', $excluded_route);
+            $excluded = str_replace('{id}', "[a-zA-Z0-9-:\}\{]+", $escaped_excluded_route);
+            foreach ($this->routes as $route) {
+                if (! preg_match('/'.$excluded.'/s', $route->uri)) {
+                    $non_excluded_routes->add($route);
+                }
+            }
+            $this->routes = $non_excluded_routes;
+        }
 
         foreach ($allowed_routes as $allowed_route) {
             $stripped_allowed_route = str_replace('{$tag}', '([a-zA-Z0-9-]+)', $allowed_route);
@@ -129,36 +146,21 @@ class SwaggerGeneratorService
                 }
             }
         }
+
         $this->filtered_routes = $filtered_routes;
         $this->tags = $all_tags->unique()->values()->toArray();
     }
 
     public function addAuthentication(&$swagger_docs)
     {
-        foreach ($this->authMiddleware as $key => $scheme) {
-            $this->addScheme($key, $scheme);
+        foreach ($this->auth_middleware as $key => $middleware) {
+            $this->addMiddleware($key, $middleware);
         }
     }
 
-    protected function addScheme(string $key, array $scheme): void
+    protected function addMiddleware(string $key, array $middleware): void
     {
-        if ($security_scheme = $this->buildScheme($scheme['type'], $scheme['parameters'] ?? null)) {
-            $this->security_schemes[$key] = [
-                'scheme' => $security_scheme,
-                'name' => $scheme['name'] ?? $key,
-            ];
-        }
-    }
-
-    protected function buildScheme(string $type, ?array $scheme_parameters): ?array
-    {
-        $type_method = "get{$type}AuthScheme";
-        if (\method_exists($this, $type_method)) {
-            return $scheme_parameters ? $this->$type_method($scheme_parameters) : $this->$type_method();
-        } else {
-            return null;
-            Log::error("Supplied auth type: {$type} is not supported.");
-        }
+        $this->security_schemes[$key] = $middleware['schema'];
     }
 
     protected function addPaths(&$swagger_docs)
@@ -191,7 +193,12 @@ class SwaggerGeneratorService
 
     protected function printJson(array $swagger_docs)
     {
-        $this->output->write(json_encode($swagger_docs, JSON_PRETTY_PRINT + JSON_UNESCAPED_SLASHES), true);
+        $stringify = json_encode($swagger_docs, JSON_PRETTY_PRINT + JSON_UNESCAPED_SLASHES);
+        $this->output->write($stringify, true);
+
+        if ($this->output_file_path) {
+            File::put($this->output_file_path, $stringify);
+        }
     }
 
     // PECL: Yaml isn't a default php-package. So screw this I guess.
@@ -361,7 +368,7 @@ class SwaggerGeneratorService
 
     protected function getRequestParameters(\ReflectionClass $request): array
     {
-        return $request->newInstance()->rules();
+        return Arr::undot($request->newInstance()->rules());
     }
 
     protected function addComponents(array &$swagger_docs): void
@@ -376,7 +383,8 @@ class SwaggerGeneratorService
     {
         $schemes = [];
         foreach ($this->security_schemes as $security_scheme) {
-            $schemes[$security_scheme['name']] = $security_scheme['scheme'];
+            $schemes[$security_scheme['name']] = $security_scheme;
+            unset($schemes[$security_scheme['name']]['name']);
         }
 
         return $schemes;
@@ -391,6 +399,7 @@ class SwaggerGeneratorService
                 'required' => $this->getRequiredParameters($parameters),
                 'properties' => $this->getProperties($parameters),
             ];
+
             $this->schemas[$requestName] = $component;
         }
 
@@ -406,7 +415,7 @@ class SwaggerGeneratorService
         if (isset($resource_name)) {
             if ($this->responseClassIsJsonResource($reflection)) {
                 if ($this->responseClassIsResourceCollection($reflection)) {
-                    $parameters = $reflection->newInstance(new Collection())->toArray(request());
+                    $parameters = $reflection->newInstance(new Collection([new Model()]))->toArray(request());
                 } else {
                     $parameters = $reflection->newInstance(new Model())->toArray(request());
                 }
@@ -414,7 +423,7 @@ class SwaggerGeneratorService
                 if (! isset($this->schemas[$resource_name])) {
                     $component = [
                         'type' => 'object',
-                        'properties' => $this->getProperties($parameters),
+                        'properties' => $this->getPropertiesFromResource($parameters),
                     ];
                     $this->schemas[$resource_name] = $component;
                 }
@@ -443,11 +452,18 @@ class SwaggerGeneratorService
         return str_replace('\\', '', $requestName);
     }
 
-    protected function getProperties(array $parameters): array
+    protected function getPropertiesFromResource(array $parameters): array
+    {
+        return $this->getProperties($parameters, true);
+    }
+
+    protected function getProperties(array $parameters, bool $is_resource = false): array
     {
         $properties = [];
         foreach ($parameters as $parameter_name => $parameter_info) {
-            $this->addProperty($parameter_name, $parameter_info, $properties);
+            if (! is_numeric($parameter_name)) {
+                $this->addProperty($parameter_name, $is_resource ? 'string' : $parameter_info, $properties);
+            }
         }
 
         return $properties;
@@ -456,29 +472,69 @@ class SwaggerGeneratorService
     protected function addQueryParameters(array $properties, array &$component): void
     {
         foreach ($properties as $property_name => $property_info) {
-            $this->addQueryParameter($property_name, $property_info, $component);
+            $this->addQueryParameter($property_name, $property_info, $component, $properties);
         }
     }
 
-    protected function addProperty(string $property_name, $property_info, &$component): void
+    protected function hasObjects(array $array): bool
     {
-        $property = [
-            'type' => $this->getPropertyType($property_info),
-        ];
+        return isset($array['*']);
+    }
+
+    protected function hasSubParameters(array $array): bool
+    {
+        if (empty($array)) {
+            return false;
+        }
+
+        return array_keys($array) !== range(0, count($array) - 1);
+    }
+
+    protected function addProperty(string $property_name, $property_rule, &$component): void
+    {
+        $property_rule = is_string($property_rule) ? explode('|', $property_rule) : $property_rule;
+
+        if (! $this->hasObjects($property_rule)) {
+            if ($this->hasSubParameters($property_rule)) {
+                $property = [
+                    'type' => 'object',
+                    'required' => $this->getRequiredParameters($property_rule),
+                    'properties' => $this->getProperties($property_rule),
+                ];
+            } else {
+                $property = [
+                    'type' => $this->getPropertyType($property_rule),
+                ];
+            }
+        } else {
+            $property = [
+                'type' => 'array',
+                'items' => [
+                    'type' => 'object',
+                    'required' => $this->getRequiredParameters($property_rule),
+                    'properties' => $this->getProperties($property_rule),
+                ],
+            ];
+        }
 
         $component[$property_name] = $property;
     }
 
-    protected function addQueryParameter($property_name, $property_info, &$parameters)
+    protected function addQueryParameter($property_name, $property_info, array &$parameters, array &$other_properties)
     {
+        if (str_ends_with($property_name, '.*')) {
+            return;
+        }
+
         $type = $this->getPropertyType($property_info);
-        $name = $type === 'array' ? $property_name.'[]' : $property_name;
+        $name = ($type === 'array') ? $property_name.'[]' : $property_name;
 
         $param = [
             'name' => $name,
             'in' => 'query',
             'required' => $this->isRequestParameterRequired($property_info),
         ];
+
         if ($type === 'array') {
             $param['style'] = 'form';
             $param['explode'] = true;
@@ -488,31 +544,65 @@ class SwaggerGeneratorService
                     'type' => 'string',
                 ],
             ];
+
+            $enum = $this->findSubProperties($property_name, $other_properties);
+            if (! empty($enum)) {
+                $param['schema']['items']['enum'] = $enum;
+            }
         }
 
         $parameters[] = $param;
     }
 
-    protected function getPropertyType($info): string
+    protected function findSubProperties(string $property_name, array &$other_properties): array
     {
-        if (is_string($info)) {
-            if (str_contains($info, 'string') || str_contains($info, 'date') || str_contains($info, 'email') || str_contains($info, 'ip')) {
-                return 'string';
-            } elseif (str_contains($info, 'integer')) {
-                return 'integer';
-            } elseif (str_contains($info, 'numeric')) {
-                return 'number';
-            } elseif (str_contains($info, 'bool')) {
-                return 'boolean';
-            } elseif (str_contains($info, 'array')) {
-                return 'array';
-            } elseif (str_contains($info, 'int')) {
-                Log::alert('Possible use of `int´ statement. Due to possible mismatches this type should be declared as integer.');
+        $subs = [];
+        if (key_exists("{$property_name}.*", $other_properties)) {
+            $subs = $this->getEnumFromRule($other_properties["{$property_name}.*"]);
+        }
 
-                return 'integer';
+        return $subs;
+    }
+
+    protected function getEnumFromRule($rules): array
+    {
+        if (is_string($rules)) {
+            $rules = explode('|', $rules);
+        }
+
+        foreach ($rules as $rule) {
+            if (is_object($rule) && get_class($rule) === In::class) {
+                return explode(',', str_replace(['in:', '"'], '', (string) $rule));
             }
         }
-        //default to string
+
+        return [];
+    }
+
+    protected function getPropertyType($rule): string
+    {
+        if (is_string($rule)) {
+            $rule = explode('|', $rule);
+        }
+
+        if (in_array('numeric', $rule)) {
+            return 'number';
+        }
+
+        if (in_array('boolean', $rule)) {
+            return 'boolean';
+        }
+
+        if (in_array('array', $rule)) {
+            return 'array';
+        }
+
+        if (in_array('integer', $rule) || in_array('int', $rule)) {
+            return 'integer';
+        }
+
+        // default to string !
+
         return 'string';
     }
 
@@ -574,8 +664,9 @@ class SwaggerGeneratorService
     protected function getMethodReturnClass(\ReflectionMethod $method): ?\ReflectionType
     {
         if (! $method->hasReturnType()) {
-            return null;
             Log::error('Return object from '.$method->name.' not typed. Unable to obtain response object.');
+
+            return null;
         } else {
             return $method->getReturnType();
         }
@@ -619,10 +710,10 @@ class SwaggerGeneratorService
         $security = [];
         $middlewares = $this->router->gatherRouteMiddleware($route);
         foreach ($middlewares as $middleware) {
-            foreach ($this->authMiddleware as $key => $authMiddleware) {
-                if (isset($authMiddleware['class']) && $authMiddleware['class'] === $middleware) {
+            foreach ($this->auth_middleware as $key => $auth_middleware) {
+                if (isset($auth_middleware['class']) && $auth_middleware['class'] === $middleware) {
                     $security[] = [
-                        $authMiddleware['name'] ?? $key => [],
+                        $auth_middleware['schema']['name'] ?? $key => [],
                     ];
                 }
             }
@@ -685,41 +776,5 @@ class SwaggerGeneratorService
     protected function addInfo(&$object): void
     {
         $object['info'] = Config::get('swagger_gen.info');
-    }
-
-    protected function getBasicAuthScheme(): array
-    {
-        return [
-            'type' => 'http',
-            'scheme' => 'basic',
-        ];
-    }
-
-    protected function getBearerAuthScheme(): array
-    {
-        return [
-            'type' => 'http',
-            'scheme' => 'bearer',
-        ];
-    }
-
-    protected function getApiKeyAuthScheme(array $params): array
-    {
-        $api_key_auth = [
-            'type' => 'apiKey',
-            'in' => $params['in'],
-        ];
-
-        $api_key_auth['name'] = $params['name'] ?? 'apiKey';
-
-        return $api_key_auth;
-    }
-
-    protected function getOpenIDAuthScheme(array $params)
-    {
-        return [
-            'type' => 'openIdConnect',
-            'openIdConnectUrl' => $params['openIdUri'] ?? '',
-        ];
     }
 }

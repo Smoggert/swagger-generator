@@ -16,20 +16,18 @@ return [
 
     'servers' => [
         [
-            'url' => 'http://{tenant:demo}.test.test/api/v1',
+            'url' => 'https://{subdomain:test}.test.test/api/v1',
             'description' => 'My dev server',
         ],
     ],
 
-    'output' => [
-        'path' => storage_path('text.txt'),
-    ],
+    //'output' => storage_path('text.txt'),
 
     /* -----------------------------
     *  Define your allowed routes
     *  -----------------------------
     *   This defines the prefixes that will be required to index the routes from your application.
-    *   You can index the tag related to the prefix with /{$tag}
+    *   You can index the tag related to the prefix with /{$tag}, skip resource related parameters with {id}
     */
 
     'allowed' => [
@@ -37,14 +35,46 @@ return [
     ],
 
     /* -----------------------------
+    *  Define your excluded routes
+    *  -----------------------------
+    *   This defines the exact routes that won't be included.
+    *   Indicate resource related parameters with {id}
+    */
+
+    'exclude' => [
+        // 'api/v1/resources/{id}'
+    ],
+
+    /* -----------------------------
     *  Define your auth middlewares
     *  -----------------------------
-    *   When defined this will apply the security scheme to each route where the middleware or middlewaregroup is encountered.
-    *   Supported types: basic, bearer, apiKey:<header|name>, apiKey:<request> ,openId:<url-here>
+    *   When defined this will apply the security scheme to each route where the middleware or middleware-group is encountered.
+    *   Possible schemes: https://swagger.io/docs/specification/authentication/
+    *
+    *   Syntax is a bit double with the alias & class reference, but this is due to how Laravel's Console kernel messes with Middleware.
     */
 
     'middleware' => [
-        // 'api' => 'openId:https://myapi.example.com/open-idconfig;optional_name'
+        /*        'auth:api' => [
+            'class' => \App\Http\Middleware\Authenticate::class . ":api",
+            'schema' => [
+                'name' => 'MyOauthToken',
+                'type' => 'oauth2',
+                'scheme' => 'bearer',
+                'description' => "Authorization code flow for 3rd party implementations. !! 'client_id' & 'client_secret' !! passed in the body for token fetching with grant_type code.",
+                'bearerFormat' => 'JWT',
+                'flows' => [
+                    'authorizationCode' => [
+                        'authorizationUrl' => "https://test.test/oauth/authorize",
+                        'tokenUrl'=> "https://test.test/oauth/token",
+                        'refreshUrl' => "https://test.test/oauth/token/refresh",
+                        'scopes' => [
+                            'scope' => 'Explain scope',
+                        ]
+                    ]
+                ]
+            ]
+        ]*/
     ],
 
     /* -----------------------------
