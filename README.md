@@ -33,7 +33,7 @@ If you want to specify which routes you'd like to include, (among other things),
 ```
 
 ## Usage
-Available in jsonformat.
+Available in json-format.
 
 ```bash
   php artisan swagger:generate
