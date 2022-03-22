@@ -42,9 +42,8 @@ return [
     */
 
     'exclude' => [
-          // 'api/v1/resources/{id}'
+        // 'api/v1/resources/{id}'
     ],
-
 
     /* -----------------------------
     *  Define your auth middlewares
@@ -55,9 +54,8 @@ return [
     *   Syntax is a bit double with the alias & class reference, but this is due to how Laravel's Console kernel messes with Middleware.
     */
 
-
     'middleware' => [
-/*        'auth:api' => [
+        /*        'auth:api' => [
             'class' => \App\Http\Middleware\Authenticate::class . ":api",
             'schema' => [
                 'name' => 'MyOauthToken',
