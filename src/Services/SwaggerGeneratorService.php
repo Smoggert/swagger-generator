@@ -21,7 +21,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 class SwaggerGeneratorService
 {
     /**
-     * @var \Symfony\Component\Console\Output\OutputInterface
+     * @var OutputInterface
      */
     protected $output;
 
@@ -327,6 +327,11 @@ class SwaggerGeneratorService
         return isset($class) && $class->isSubclassOf(JsonResource::class);
     }
 
+    protected function responseClassIsBaseResponse(?\ReflectionClass $class): bool
+    {
+        return isset($class) && $class->isSubclassOf(\Symfony\Component\HttpFoundation\Response::class);
+    }
+
     protected function responseClassIsResourceCollection(?\ReflectionClass $class): bool
     {
         return isset($class) && $class->isSubclassOf(ResourceCollection::class);
@@ -427,9 +432,9 @@ class SwaggerGeneratorService
                     ];
                     $this->schemas[$resource_name] = $component;
                 }
-            }
 
-            return $this->wrapString('#/components/schemas/'.$resource_name);
+                return $this->wrapString('#/components/schemas/'.$resource_name);
+            }
         }
 
         return null;
@@ -650,12 +655,26 @@ class SwaggerGeneratorService
                 ];
             }
 
-            $responses[$this->wrapString('200')] = $response;
+            $responses[$this->wrapString($this->getStatusCode($class_type))] = $response;
         }
 
         return $responses;
     }
 
+    public function getStatusCode(?\ReflectionType $type): string
+    {
+        $reflection = (isset($type) && ! $type->isBuiltin()) ? new \ReflectionClass($type->getName()) : null;
+        $response_name = $reflection ? $this->trimResourcePath($type->getName()) : null;
+
+        if (isset($response_name)) {
+            if ($this->responseClassIsBaseResponse($reflection)) {
+                $response = $reflection->newInstance();
+                return (string) $response->getStatusCode();
+            }
+        }
+
+        return '200';
+    }
     protected function getDefaultResponsesForVerb(string $verb): array
     {
         return $this->default_responses['*'] ?? [] + $this->default_responses[$verb] ?? [];
