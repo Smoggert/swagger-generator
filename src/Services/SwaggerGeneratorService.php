@@ -640,7 +640,7 @@ class SwaggerGeneratorService
             $class_type = $this->getMethodReturnClass($method);
 
             $response = [
-                'description' => 'The object returned by this method.',
+                'description' => 'The request has been properly executed.',
             ];
 
             $response_reference = $this->createResponseBodyFromJsonResource($class_type);
