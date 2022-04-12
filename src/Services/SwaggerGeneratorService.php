@@ -669,12 +669,14 @@ class SwaggerGeneratorService
         if (isset($response_name)) {
             if ($this->responseClassIsBaseResponse($reflection)) {
                 $response = $reflection->newInstance();
+
                 return (string) $response->getStatusCode();
             }
         }
 
         return '200';
     }
+
     protected function getDefaultResponsesForVerb(string $verb): array
     {
         return $this->default_responses['*'] ?? [] + $this->default_responses[$verb] ?? [];
