@@ -11,7 +11,7 @@ You can place this in require-dev and just run the command during deploy/dev. No
 ```json
     "require-dev": {
         
-        "smoggert/swagger-generator": "^1.1.0"
+        "smoggert/swagger-generator": "^1.1.1"
     }
 ```
 ## !! Prerequisits !!
