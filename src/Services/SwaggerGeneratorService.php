@@ -507,9 +507,14 @@ class SwaggerGeneratorService
                     'properties' => $this->getProperties($property_rule),
                 ];
             } else {
+                $type = $this->getPropertyType($property_rule);
                 $property = [
-                    'type' => $this->getPropertyType($property_rule),
+                    'type' => $type,
                 ];
+
+                if($type === 'string' && ($enum = $this->getEnumFromRule($property_rule))) {
+                    $property['enum'] = $enum;
+                }
             }
         } else {
             $property = [
