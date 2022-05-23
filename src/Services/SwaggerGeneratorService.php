@@ -2,6 +2,7 @@
 
 namespace Smoggert\SwaggerGenerator\Services;
 
+use Exception;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
@@ -17,9 +18,11 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\In;
 use Smoggert\SwaggerGenerator\Models\FakeModelForSwagger as Model;
 use Symfony\Component\Console\Output\OutputInterface;
+use Throwable;
 
 class SwaggerGeneratorService
 {
+    protected const CONFIG_FILE_NAME = 'swagger_gen';
     /**
      * @var OutputInterface
      */
@@ -40,17 +43,19 @@ class SwaggerGeneratorService
      */
     protected $filtered_routes;
 
-    public const YAMLSPACE = '  ';
-    public const YAMLPARAMETER = '- ';
-    public const YAMLARRAYKEYINDICATOR = ': ';
-
     protected $tags = [];
     protected $schemas = [];
     protected $security_schemes = [];
     protected $paths = [];
     protected $default_responses;
-    protected $format = 'yaml';
+    protected $format;
     protected $auth_middleware;
+    protected $allowed_routes;
+    protected $excluded_routes;
+    protected $servers;
+    protected $version;
+    protected $info;
+    protected $apis;
 
     protected $supported_formats = [
         'json',
@@ -63,34 +68,88 @@ class SwaggerGeneratorService
     {
         $this->router = $router;
         $this->routes = $router->getRoutes();
-        $this->default_responses = Config::get('swagger_gen.default_responses');
-        $this->output_file_path = Config::get('swagger_gen.output');
-        $this->auth_middleware = Config::get('swagger_gen.middleware');
+        $this->apis = Config::get('apis');
+
+        $this->validateConfiguration();
     }
 
-    public function generate(OutputInterface $output, string $format = 'json'): int
+    /**
+     * @param OutputInterface $output
+     * @param bool $print_to_output
+     * @param string $format
+     * @return int
+     * @throws Exception
+     */
+    public function generate(OutputInterface $output, bool $print_to_output, string $format = 'json'): int
+    {
+        $this->output = $output;
+        foreach ($this->apis as $api) {
+            $this->setConfig($api);
+            $swagger_file = [];
+
+            $this->setFormat($format);
+            $this->addVersion($swagger_file);
+            $this->addInfo($swagger_file);
+            $this->addServers($swagger_file);
+            $this->addAuthentication($swagger_file);
+
+            $this->filterRoutes();
+
+            $this->addTags($swagger_file);
+            $this->addPaths($swagger_file);
+            $this->addComponents($swagger_file);
+            $this->printSwaggerDocsUsingFormat($swagger_file, $print_to_output);
+        }
+
+
+        return 0;
+    }
+
+    protected function setConfig($configuration)
+    {
+        $this->default_responses = $configuration['default_responses'];
+        $this->output_file_path = $configuration['output'];
+        $this->auth_middleware =  $configuration['middleware'];
+        $this->servers = $configuration['servers'];
+        $this->version = $configuration['openapi'];
+        $this->allowed_routes = $configuration['allowed'];
+        $this->excluded_routes = $configuration['excluded'];
+        $this->info = $configuration['info'];
+    }
+
+    protected function validateConfiguration()
+    {
+        if(! empty($this->apis)) {
+            foreach ($this->apis as &$api) {
+                if(! is_array($api)) {
+                    throw new Exception("Objects within the apis config should be arrays.");
+                }
+
+                $api = array_merge(Config::get(self::CONFIG_FILE_NAME . '.default'), $api);
+            }
+        } else {
+            $this->apis = [
+                Config::get(self::CONFIG_FILE_NAME . '.default') ?? Config::get(self::CONFIG_FILE_NAME)
+            ];
+        }
+    }
+
+    /**
+     * @param string $format
+     * @return void
+     * @throws Exception
+     */
+    protected function setFormat(string $format) : void
     {
         if (! in_array($format, $this->supported_formats)) {
             $formats = implode(', ', $this->supported_formats);
-            throw new \Exception("Unsupported format {$format} try: {$formats}");
+            throw new Exception("Unsupported format {$format} try: {$formats}");
+        }
+
+        if(! extension_loaded($format)) {
+            throw new Exception("In order to parse the docs as {$format} you must install/enable the {$format} extension: ( https://github.com/php/pecl-file_formats-yaml or https://www.php.net/manual/en/function.json-encode)");
         }
         $this->format = $format;
-        $this->output = $output;
-        $swagger_file = [];
-
-        $this->addVersion($swagger_file);
-        $this->addInfo($swagger_file);
-        $this->addServers($swagger_file);
-        $this->addAuthentication($swagger_file);
-
-        $this->filterRoutes();
-
-        $this->addTags($swagger_file);
-        $this->addPaths($swagger_file);
-        $this->addComponents($swagger_file);
-        $this->printSwaggerDocsUsingFormat($swagger_file);
-
-        return 0;
     }
 
     protected function addTags(&$swagger_file): void
@@ -106,12 +165,10 @@ class SwaggerGeneratorService
 
     protected function filterRoutes(): void
     {
-        $allowed_routes = Config::get('swagger_gen.allowed');
-        $excluded_routes = Config::get('swagger_gen.excluded');
         $filtered_routes = [];
         $all_tags = new Collection();
 
-        foreach ($excluded_routes as $excluded_route) {
+        foreach ($this->excluded_routes as $excluded_route) {
             $non_excluded_routes = new RouteCollection();
 
             $escaped_excluded_route = str_replace('/', '\/', $excluded_route);
@@ -124,7 +181,7 @@ class SwaggerGeneratorService
             $this->routes = $non_excluded_routes;
         }
 
-        foreach ($allowed_routes as $allowed_route) {
+        foreach ($this->allowed_routes as $allowed_route) {
             $stripped_allowed_route = str_replace('{$tag}', '([a-zA-Z0-9-]+)', $allowed_route);
             $escaped_allowed_route = str_replace('/', '\/', $stripped_allowed_route);
             $twice_stripped_allowed_route = str_replace('{id}', "[a-zA-Z0-9-:\}\{]+", $escaped_allowed_route);
@@ -182,60 +239,38 @@ class SwaggerGeneratorService
         return $route->uri;
     }
 
-    protected function printSwaggerDocsUsingFormat(array $swagger_docs)
+    protected function printSwaggerDocsUsingFormat(array $swagger_docs, bool $print_to_output)
     {
-        if ($this->format === 'yaml') {
-            $this->printYaml($swagger_docs);
-        } elseif ($this->format === 'json') {
-            $this->printJson($swagger_docs);
-        }
-    }
+        $output = ($this->format === 'json') ? $this->printJson($swagger_docs) : $this->printYaml($swagger_docs);
 
-    protected function printJson(array $swagger_docs)
-    {
-        $stringify = json_encode($swagger_docs, JSON_PRETTY_PRINT + JSON_UNESCAPED_SLASHES);
-        $this->output->write($stringify, true);
+        if($print_to_output) {
+            $this->output->write($output, true);
+        }
 
         if ($this->output_file_path) {
-            File::put($this->output_file_path, $stringify);
+            File::put($this->output_file_path, $output);
         }
     }
 
-    // PECL: Yaml isn't a default php-package. So screw this I guess.
-    // protected function printEasierYaml(array $swagger_docs)
-    // {
-    //     $this->output->write(\yaml_emit($swagger_docs),true);
-    // }
-
-    protected function printYaml(array $mixed = [], $starting_indentation = '', $is_list_start = false): void
+    /**
+     * @requires json > 1.2.0
+     * @param array $swagger_docs
+     * @return string
+     */
+    protected function printJson(array $swagger_docs) : string
     {
-        $indentation = $starting_indentation;
-        foreach ($mixed as $key => $mix) {
-            $is_array = \is_array($mix);
-            if (is_numeric($key)) {
-                if ($is_array && ! empty($mix)) {
-                    $this->printYaml($mix, $indentation.self::YAMLSPACE, true);
-                } else {
-                    $mix = $is_array ? '[]' : $mix;
-                    $this->output->writeln($indentation.self::YAMLPARAMETER.$mix);
-                }
-            } else {
-                if ($is_array && ! empty($mix)) {
-                    $this->output->writeln($indentation.$key.self::YAMLARRAYKEYINDICATOR);
-                    $this->printYaml($mix, $indentation.self::YAMLSPACE);
-                } else {
-                    $mix = $is_array ? '[]' : $mix;
-                    $mix = \is_bool($mix) ? ($mix ? 'true' : 'false') : $mix;
-                    if (! $is_list_start) {
-                        $this->output->writeln($indentation.$key.self::YAMLARRAYKEYINDICATOR.$mix);
-                    } else {
-                        $this->output->writeln($indentation.self::YAMLPARAMETER.$key.self::YAMLARRAYKEYINDICATOR.$mix);
-                        $is_list_start = false;
-                        $indentation .= self::YAMLSPACE;
-                    }
-                }
-            }
-        }
+        return json_encode($swagger_docs, JSON_PRETTY_PRINT + JSON_UNESCAPED_SLASHES);
+    }
+
+
+    /**
+     * @requires yaml >= 0.5.0
+     * @param array $swagger_docs
+     * @return string
+     */
+    protected function printYaml(array $swagger_docs = []): string
+    {
+        return yaml_emit($swagger_docs);
     }
 
     public function getController(Route $route): string
@@ -723,7 +758,7 @@ class SwaggerGeneratorService
             $this->setRouteParameters($route['route'], $path);
             $path_name = (strpos($route['route']->uri, '/') === 0) ? $route['route']->uri : '/'.$route['route']->uri;
             $paths[$path_name][$verb] = $path;
-        } catch (\Exception $exception) {
+        } catch (Throwable $exception) {
             Log::info($exception->getMessage().' :'.$this->getRouteName($route['route']), $exception->getTrace());
         }
     }
@@ -765,8 +800,7 @@ class SwaggerGeneratorService
 
     protected function addServers(&$swagger_docs): void
     {
-        $servers = Config::get('swagger_gen.servers');
-        foreach ($servers as &$server) {
+        foreach ($this->servers as &$server) {
             $params = [];
             preg_match_all("/\{[a-zA-Z0-9-\.,:]+\}/", $server['url'] ?? '', $params);
             if (! empty($params[0])) {
@@ -774,7 +808,7 @@ class SwaggerGeneratorService
             }
         }
 
-        $swagger_docs['servers'] = $servers;
+        $swagger_docs['servers'] = $this->servers;
     }
 
     protected function addParametersToServer(array &$server, array $params): void
@@ -796,11 +830,11 @@ class SwaggerGeneratorService
 
     protected function addVersion(&$object): void
     {
-        $object['openapi'] = Config::get('swagger_gen.openapi');
+        $object['openapi'] = $this->version;
     }
 
     protected function addInfo(&$object): void
     {
-        $object['info'] = Config::get('swagger_gen.info');
+        $object['info'] = $this->info;
     }
 }

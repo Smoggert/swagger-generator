@@ -7,7 +7,7 @@ use Smoggert\SwaggerGenerator\Services\SwaggerGeneratorService;
 
 class GenerateSwaggerCommand extends Command
 {
-    protected $signature = 'swagger:generate {--format=json}';
+    protected $signature = 'swagger:generate {--format=json} {--print : Whether or not to print the generated document to the console, useful for piping into a debug function.}';
 
     protected $description = 'Generate swagger documentation based on your api routes';
 
@@ -27,6 +27,6 @@ class GenerateSwaggerCommand extends Command
      */
     public function handle()
     {
-        return $this->swagger_generator_service->generate($this->output, $this->option('format'));
+        return $this->swagger_generator_service->generate($this->output, $this->option('print'), $this->option('format'));
     }
 }
