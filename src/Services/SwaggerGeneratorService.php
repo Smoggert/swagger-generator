@@ -68,7 +68,7 @@ class SwaggerGeneratorService
     {
         $this->router = $router;
         $this->routes = $router->getRoutes();
-        $this->apis = Config::get('apis');
+        $this->apis = Config::get(self::CONFIG_FILE_NAME . 'apis');
 
         $this->validateConfiguration();
     }
