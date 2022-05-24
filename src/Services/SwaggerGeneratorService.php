@@ -173,17 +173,18 @@ class SwaggerGeneratorService
         $filtered_routes = [];
         $all_tags = new Collection();
 
-        foreach ($this->excluded_routes as $excluded_route) {
-            $non_excluded_routes = new RouteCollection();
+        $non_excluded_routes = $this->routes;
 
+        foreach ($this->excluded_routes as $excluded_route) {
+            $temp = new RouteCollection();
             $escaped_excluded_route = str_replace('/', '\/', $excluded_route);
             $excluded = str_replace('{id}', "[a-zA-Z0-9-:\}\{]+", $escaped_excluded_route);
-            foreach ($this->routes as $route) {
+            foreach ($non_excluded_routes as $route) {
                 if (! preg_match('/'.$excluded.'/s', $route->uri)) {
-                    $non_excluded_routes->add($route);
+                    $temp->add($route);
                 }
             }
-            $this->routes = $non_excluded_routes;
+            $non_excluded_routes = $temp;
         }
 
         foreach ($this->allowed_routes as $allowed_route) {
@@ -191,7 +192,7 @@ class SwaggerGeneratorService
             $escaped_allowed_route = str_replace('/', '\/', $stripped_allowed_route);
             $twice_stripped_allowed_route = str_replace('{id}', "[a-zA-Z0-9-:\}\{]+", $escaped_allowed_route);
 
-            foreach ($this->routes as $route) {
+            foreach ($non_excluded_routes as $route) {
                 $tags = [];
                 if (preg_match('/'.$twice_stripped_allowed_route.'/s', $route->uri, $tags)) {
                     array_shift($tags);
