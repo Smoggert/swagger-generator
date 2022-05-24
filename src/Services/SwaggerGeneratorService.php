@@ -83,10 +83,11 @@ class SwaggerGeneratorService
     public function generate(OutputInterface $output, bool $print_to_output, string $format = 'json'): int
     {
         $this->output = $output;
+
         foreach ($this->apis as $api) {
-            $this->setConfig($api);
             $swagger_file = [];
 
+            $this->setConfig($api);
             $this->setFormat($format);
             $this->addVersion($swagger_file);
             $this->addInfo($swagger_file);
@@ -107,14 +108,14 @@ class SwaggerGeneratorService
 
     protected function setConfig($configuration)
     {
-        $this->default_responses = $configuration['default_responses'];
-        $this->output_file_path = $configuration['output'];
-        $this->auth_middleware =  $configuration['middleware'];
-        $this->servers = $configuration['servers'];
-        $this->version = $configuration['openapi'];
-        $this->allowed_routes = $configuration['allowed'];
-        $this->excluded_routes = $configuration['excluded'];
-        $this->info = $configuration['info'];
+        $this->default_responses = $configuration['default_responses'] ?? [];
+        $this->output_file_path = $configuration['output'] ?? null;
+        $this->auth_middleware =  $configuration['middleware'] ?? [];
+        $this->servers = $configuration['servers'] ?? [];
+        $this->version = $configuration['openapi'] ??  "3.0.0";
+        $this->allowed_routes = $configuration['allowed'] ?? [];
+        $this->excluded_routes = $configuration['excluded'] ?? [];
+        $this->info = $configuration['info'] ?? [];
     }
 
     protected function validateConfiguration()
@@ -125,11 +126,15 @@ class SwaggerGeneratorService
                     throw new Exception("Objects within the apis config should be arrays.");
                 }
 
-                $api = array_merge(Config::get(self::CONFIG_FILE_NAME . '.default'), $api);
+                if(! array_key_exists('default', $this->apis)) {
+                    throw new Exception("Please provide an api.");
+                }
+
+                $api = array_merge($this->apis['default'], $api);
             }
         } else {
             $this->apis = [
-                Config::get(self::CONFIG_FILE_NAME . '.default') ?? Config::get(self::CONFIG_FILE_NAME)
+                Config::get(self::CONFIG_FILE_NAME)
             ];
         }
     }
