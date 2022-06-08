@@ -340,7 +340,7 @@ class SwaggerGeneratorService
                         $this->parseUrlParameter($parameter, $url_parameters);
                     }
                 } else {
-                    Log::warning("Couldn't parse ".$parameter.', parameter is not typed on '.$route->uri);
+                    Log::warning($route->uri."| Couldn't parse ".$parameter.', parameter is not typed on ');
                 }
             }
             $all_parameters = array_merge($url_parameters, $query_parameters);
@@ -683,7 +683,7 @@ class SwaggerGeneratorService
         }
 
         if ($method = $this->getRouteMethod($route)) {
-            $class_type = $this->getMethodReturnClass($method);
+            $class_type = $this->getMethodReturnClass($method, $route);
 
             $response = [
                 'description' => 'The request has been properly executed.',
@@ -728,11 +728,10 @@ class SwaggerGeneratorService
         return $this->default_responses['*'] ?? [] + $this->default_responses[$verb] ?? [];
     }
 
-    protected function getMethodReturnClass(\ReflectionMethod $method): ?\ReflectionType
+    protected function getMethodReturnClass(\ReflectionMethod $method, ?Route $route = null): ?\ReflectionType
     {
         if (! $method->hasReturnType()) {
-            Log::error('Return object from '.$method->name.' not typed. Unable to obtain response object.');
-
+            Log::warning(($route? $route->uri : "").'| Return object from '.$method->name.' not typed. Unable to obtain response object.');
             return null;
         } else {
             return $method->getReturnType();
