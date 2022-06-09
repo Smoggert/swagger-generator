@@ -560,11 +560,7 @@ class SwaggerGeneratorService
         } else {
             $property = [
                 'type' => 'array',
-                'items' => [
-                    'type' => 'object',
-                    'required' => $this->getRequiredParameters($property_rule),
-                    'properties' => $this->getProperties($property_rule),
-                ],
+                'items' => $this->getProperties($property_rule['*']),
             ];
         }
 
