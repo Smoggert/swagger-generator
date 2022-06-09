@@ -561,9 +561,10 @@ class SwaggerGeneratorService
             }
         } else {
             $property = [
-                'type' => 'array',
-                'items' => $this->getProperties($property_rule['*']),
-            ];
+                'type' => 'array'
+                ];
+
+            $this->addProperty('items',$property_rule['*'], $property);
         }
 
         $component[$property_name] = $property;
