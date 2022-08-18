@@ -135,7 +135,7 @@ return [
                         'description' => 'Route/Resource not found.',
                     ],
                 ],
-            ]
+            ],
         ],
-    ]
+    ],
 ];

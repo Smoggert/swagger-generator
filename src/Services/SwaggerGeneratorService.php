@@ -68,16 +68,17 @@ class SwaggerGeneratorService
     {
         $this->router = $router;
         $this->routes = $router->getRoutes();
-        $this->apis = Config::get(self::CONFIG_FILE_NAME . '.apis');
+        $this->apis = Config::get(self::CONFIG_FILE_NAME.'.apis');
 
         $this->validateConfiguration();
     }
 
     /**
-     * @param OutputInterface $output
-     * @param bool $print_to_output
-     * @param string $format
+     * @param  OutputInterface  $output
+     * @param  bool  $print_to_output
+     * @param  string  $format
      * @return int
+     *
      * @throws Exception
      */
     public function generate(OutputInterface $output, bool $print_to_output, string $format = 'json'): int
@@ -102,7 +103,6 @@ class SwaggerGeneratorService
             $this->printSwaggerDocsUsingFormat($swagger_file, $print_to_output);
         }
 
-
         return 0;
     }
 
@@ -110,9 +110,9 @@ class SwaggerGeneratorService
     {
         $this->default_responses = $configuration['default_responses'] ?? [];
         $this->output_file_path = $configuration['output'] ?? null;
-        $this->auth_middleware =  $configuration['middleware'] ?? [];
+        $this->auth_middleware = $configuration['middleware'] ?? [];
         $this->servers = $configuration['servers'] ?? [];
-        $this->version = $configuration['openapi'] ??  "3.0.0";
+        $this->version = $configuration['openapi'] ?? '3.0.0';
         $this->allowed_routes = $configuration['allowed'] ?? [];
         $this->excluded_routes = $configuration['excluded'] ?? [];
         $this->info = $configuration['info'] ?? [];
@@ -120,38 +120,39 @@ class SwaggerGeneratorService
 
     protected function validateConfiguration()
     {
-        if(! empty($this->apis)) {
+        if (! empty($this->apis)) {
             foreach ($this->apis as &$api) {
-                if(! is_array($api)) {
-                    throw new Exception("Objects within the apis config should be arrays.");
+                if (! is_array($api)) {
+                    throw new Exception('Objects within the apis config should be arrays.');
                 }
 
-                if(! array_key_exists('default', $this->apis)) {
-                    throw new Exception("Please provide an api.");
+                if (! array_key_exists('default', $this->apis)) {
+                    throw new Exception('Please provide an api.');
                 }
 
                 $api = array_merge($this->apis['default'], $api);
             }
         } else {
             $this->apis = [
-                Config::get(self::CONFIG_FILE_NAME)
+                Config::get(self::CONFIG_FILE_NAME),
             ];
         }
     }
 
     /**
-     * @param string $format
+     * @param  string  $format
      * @return void
+     *
      * @throws Exception
      */
-    protected function setFormat(string $format) : void
+    protected function setFormat(string $format): void
     {
         if (! in_array($format, $this->supported_formats)) {
             $formats = implode(', ', $this->supported_formats);
             throw new Exception("Unsupported format {$format} try: {$formats}");
         }
 
-        if(! extension_loaded($format)) {
+        if (! extension_loaded($format)) {
             throw new Exception("In order to parse the docs as {$format} you must install/enable the {$format} extension: ( https://github.com/php/pecl-file_formats-yaml or https://www.php.net/manual/en/function.json-encode)");
         }
         $this->format = $format;
@@ -249,7 +250,7 @@ class SwaggerGeneratorService
     {
         $output = ($this->format === 'json') ? $this->printJson($swagger_docs) : $this->printYaml($swagger_docs);
 
-        if($print_to_output) {
+        if ($print_to_output) {
             $this->output->write($output, true);
         }
 
@@ -260,18 +261,19 @@ class SwaggerGeneratorService
 
     /**
      * @requires json > 1.2.0
-     * @param array $swagger_docs
+     *
+     * @param  array  $swagger_docs
      * @return string
      */
-    protected function printJson(array $swagger_docs) : string
+    protected function printJson(array $swagger_docs): string
     {
         return json_encode($swagger_docs, JSON_PRETTY_PRINT + JSON_UNESCAPED_SLASHES);
     }
 
-
     /**
      * @requires yaml >= 0.5.0
-     * @param array $swagger_docs
+     *
+     * @param  array  $swagger_docs
      * @return string
      */
     protected function printYaml(array $swagger_docs = []): string
@@ -553,7 +555,7 @@ class SwaggerGeneratorService
                     'type' => $type,
                 ];
 
-                if($type === 'string' && ($enum = $this->getEnumFromRule($property_rule))) {
+                if ($type === 'string' && ($enum = $this->getEnumFromRule($property_rule))) {
                     $property['enum'] = $enum;
                 }
             }
@@ -731,7 +733,8 @@ class SwaggerGeneratorService
     protected function getMethodReturnClass(\ReflectionMethod $method, ?Route $route = null): ?\ReflectionType
     {
         if (! $method->hasReturnType()) {
-            Log::warning(($route? $route->uri : "").'| Return object from '.$method->name.' not typed. Unable to obtain response object.');
+            Log::warning(($route ? $route->uri : '').'| Return object from '.$method->name.' not typed. Unable to obtain response object.');
+
             return null;
         } else {
             return $method->getReturnType();
