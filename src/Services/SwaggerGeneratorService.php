@@ -191,7 +191,7 @@ class SwaggerGeneratorService
         foreach ($this->allowed_routes as $allowed_route) {
             $stripped_allowed_route = str_replace('{$tag}', '([a-zA-Z0-9-]+)', $allowed_route);
             $escaped_allowed_route = str_replace('/', '\/', $stripped_allowed_route);
-            $twice_stripped_allowed_route = str_replace('{id}', "[a-zA-Z0-9-:\}\{]+", $escaped_allowed_route);
+            $twice_stripped_allowed_route = str_replace('{id}', "[a-zA-Z0-9-:\}\{_]+", $escaped_allowed_route);
 
             foreach ($non_excluded_routes as $route) {
                 $tags = [];
