@@ -254,6 +254,12 @@ class SwaggerGeneratorService
             $this->output->write($output, true);
         }
 
+        $sub_directory = dirname($this->output_file_path);
+
+        if (! File::exists($sub_directory)) {
+            File::makeDirectory($sub_directory, 777, true, true);
+        }
+
         if ($this->output_file_path) {
             File::put($this->output_file_path, $output);
         }
