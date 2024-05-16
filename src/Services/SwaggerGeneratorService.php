@@ -230,7 +230,7 @@ class SwaggerGeneratorService
         $paths = [];
 
         foreach ($this->filtered_routes as $route) {
-            $this->addPath($paths, $route);
+            $this->addPath($paths, $route['route'], $route['tags']);
         }
         $swagger_docs['paths'] = $paths;
     }
@@ -788,14 +788,14 @@ class SwaggerGeneratorService
         return null;
     }
 
-    protected function addPath(array &$paths, Route $route): void
+    protected function addPath(array &$paths, Route $route, array $tags): void
     {
         try {
             $verb = $this->getRouteVerb($route);
             $path = [
                 'responses' => $this->getResponses($route, $verb),
                 'security' => $this->getSecurity($route),
-                'tags' => $route['tags'] ?? [],
+                'tags' => $tags,
             ];
 
             $this->generateSummary($route, $path);
