@@ -230,7 +230,7 @@ class SwaggerGeneratorService
         $paths = [];
 
         foreach ($this->filtered_routes as $route) {
-            $this->addPath($paths, $route['route']);
+            $this->addPath($paths, $route);
         }
         $swagger_docs['paths'] = $paths;
     }
