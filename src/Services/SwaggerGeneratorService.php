@@ -16,6 +16,10 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\In;
+use ReflectionClass;
+use ReflectionException;
+use ReflectionMethod;
+use ReflectionType;
 use Smoggert\SwaggerGenerator\Models\FakeModelForSwagger as Model;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
@@ -23,47 +27,41 @@ use Throwable;
 class SwaggerGeneratorService
 {
     protected const CONFIG_FILE_NAME = 'swagger_gen';
-    /**
-     * @var OutputInterface
-     */
-    protected $output;
 
-    /**
-     * @var Illuminate\Routing\Router;
-     */
-    protected $router;
+    protected OutputInterface $output;
 
-    /**
-     * @var Illuminate\Routing\RouteCollection;
-     */
-    protected $routes;
 
-    /**
-     * @var Illuminate\Support\Collection;
-     */
-    protected $filtered_routes;
+    protected Router $router;
 
-    protected $tags = [];
-    protected $schemas = [];
-    protected $security_schemes = [];
-    protected $paths = [];
-    protected $default_responses;
-    protected $format;
-    protected $auth_middleware;
-    protected $allowed_routes;
-    protected $excluded_routes;
-    protected $servers;
-    protected $version;
-    protected $info;
-    protected $apis;
+    protected RouteCollection $routes;
 
-    protected $supported_formats = [
+    protected array $filtered_routes = [];
+
+    protected array $tags = [];
+    protected array $schemas = [];
+    protected array $security_schemes = [];
+    protected array $paths = [];
+    protected array $default_responses = [];
+    protected string $format = 'json';
+    protected array $auth_middleware = [];
+    protected array $allowed_routes = [];
+    protected array $excluded_routes = [];
+    protected array $servers = [];
+    protected string $version = '3.0.0';
+    protected array $info = [];
+    protected array $apis = [];
+
+    protected array $supported_formats = [
         'json',
         'yaml',
     ];
 
-    protected $output_file_path;
+    protected ?string $output_file_path = null;
 
+    /**
+     * @param Router $router
+     * @throws Exception
+     */
     public function __construct(Router $router)
     {
         $this->router = $router;
@@ -106,7 +104,7 @@ class SwaggerGeneratorService
         return 0;
     }
 
-    protected function setConfig($configuration)
+    protected function setConfig($configuration): void
     {
         $this->default_responses = $configuration['default_responses'] ?? [];
         $this->output_file_path = $configuration['output'] ?? null;
@@ -118,7 +116,10 @@ class SwaggerGeneratorService
         $this->info = $configuration['info'] ?? [];
     }
 
-    protected function validateConfiguration()
+    /**
+     * @throws Exception
+     */
+    protected function validateConfiguration(): void
     {
         if (! empty($this->apis)) {
             foreach ($this->apis as &$api) {
@@ -140,9 +141,6 @@ class SwaggerGeneratorService
     }
 
     /**
-     * @param  string  $format
-     * @return void
-     *
      * @throws Exception
      */
     protected function setFormat(string $format): void
@@ -215,7 +213,7 @@ class SwaggerGeneratorService
         $this->tags = $all_tags->unique()->values()->toArray();
     }
 
-    public function addAuthentication(&$swagger_docs)
+    public function addAuthentication(&$swagger_docs): void
     {
         foreach ($this->auth_middleware as $key => $middleware) {
             $this->addMiddleware($key, $middleware);
@@ -227,26 +225,26 @@ class SwaggerGeneratorService
         $this->security_schemes[$key] = $middleware['schema'];
     }
 
-    protected function addPaths(&$swagger_docs)
+    protected function addPaths(&$swagger_docs): void
     {
         $paths = [];
 
         foreach ($this->filtered_routes as $route) {
-            $this->addPath($paths, $route);
+            $this->addPath($paths, $route['route']);
         }
         $swagger_docs['paths'] = $paths;
     }
 
     public function getRouteName(Route $route): string
     {
-        if (substr($route->uri, 0, 1) !== '/') {
+        if (!str_starts_with($route->uri, '/')) {
             return '/'.$route->uri;
         }
 
         return $route->uri;
     }
 
-    protected function printSwaggerDocsUsingFormat(array $swagger_docs, bool $print_to_output)
+    protected function printSwaggerDocsUsingFormat(array $swagger_docs, bool $print_to_output): void
     {
         $output = ($this->format === 'json') ? $this->printJson($swagger_docs) : $this->printYaml($swagger_docs);
 
@@ -308,13 +306,15 @@ class SwaggerGeneratorService
         return [];
     }
 
-    protected function getRouteMethod(Route $route): ?\ReflectionMethod
+    /**
+     * @throws ReflectionException
+     */
+    protected function getRouteMethod(Route $route): ?ReflectionMethod
     {
         if (isset($route->action['controller'])) {
             $class = explode('@', $route->action['controller']);
-            $classMethod = new \ReflectionMethod($class[0], $class[1]);
 
-            return $classMethod;
+            return new ReflectionMethod($class[0], $class[1]);
         }
 
         return null;
@@ -329,6 +329,9 @@ class SwaggerGeneratorService
         return strtolower($result[0]);
     }
 
+    /**
+     * @throws ReflectionException
+     */
     protected function setRouteParameters(Route $route, array &$object): void
     {
         $parameters = $this->getRouteParameters($route);
@@ -337,7 +340,7 @@ class SwaggerGeneratorService
             $query_parameters = [];
             foreach ($parameters as $parameter) {
                 if ($this->parameterHasType($parameter)) {
-                    $class = $parameter->getType() && ! $parameter->getType()->isBuiltin() ? new \ReflectionClass($parameter->getType()->getName()) : null;
+                    $class = $parameter->getType() && ! $parameter->getType()->isBuiltin() ? new ReflectionClass($parameter->getType()->getName()) : null;
                     if ($this->parameterClassIsFormRequest($class)) {
                         if ($this->isQueryRoute($route)) {
                             $this->parseJsonBodyParametersAsQueryParameters($class, $query_parameters);
@@ -366,22 +369,22 @@ class SwaggerGeneratorService
         return $parameter->hasType();
     }
 
-    protected function parameterClassIsFormRequest(?\ReflectionClass $class): bool
+    protected function parameterClassIsFormRequest(?ReflectionClass $class): bool
     {
         return isset($class) && $class->isSubclassOf(FormRequest::class);
     }
 
-    protected function responseClassIsJsonResource(?\ReflectionClass $class): bool
+    protected function responseClassIsJsonResource(?ReflectionClass $class): bool
     {
         return isset($class) && $class->isSubclassOf(JsonResource::class);
     }
 
-    protected function responseClassIsBaseResponse(?\ReflectionClass $class): bool
+    protected function responseClassIsBaseResponse(?ReflectionClass $class): bool
     {
         return isset($class) && $class->isSubclassOf(\Symfony\Component\HttpFoundation\Response::class);
     }
 
-    protected function responseClassIsResourceCollection(?\ReflectionClass $class): bool
+    protected function responseClassIsResourceCollection(?ReflectionClass $class): bool
     {
         return isset($class) && $class->isSubclassOf(ResourceCollection::class);
     }
@@ -391,12 +394,12 @@ class SwaggerGeneratorService
         $param = [
             'name' => $parameter->getName(),
             'in' => 'path',
-            'required' => ($parameter->isOptional() ? false : true),
+            'required' => !$parameter->isOptional(),
         ];
         $url_parameters[] = $param;
     }
 
-    protected function parseJsonBodyParameters(\ReflectionClass $class, array &$object): void
+    protected function parseJsonBodyParameters(ReflectionClass $class, array &$object): void
     {
         $class_name = $class->getName();
         $requestParameters = $this->getRequestParameters($class);
@@ -414,13 +417,19 @@ class SwaggerGeneratorService
         }
     }
 
-    protected function parseJsonBodyParametersAsQueryParameters(\ReflectionClass $class, array &$query_parameters): void
+    /**
+     * @throws ReflectionException
+     */
+    protected function parseJsonBodyParametersAsQueryParameters(ReflectionClass $class, array &$query_parameters): void
     {
         $requestParameters = $class->newInstance()->rules();
         $this->addQueryParameters($requestParameters, $query_parameters);
     }
 
-    protected function getRequestParameters(\ReflectionClass $request): array
+    /**
+     * @throws ReflectionException
+     */
+    protected function getRequestParameters(ReflectionClass $request): array
     {
         return Arr::undot($request->newInstance()->rules());
     }
@@ -460,9 +469,12 @@ class SwaggerGeneratorService
         return $this->wrapString('#/components/schemas/'.$requestName);
     }
 
-    protected function createResponseBodyFromJsonResource(?\ReflectionType $type): ?string
+    /**
+     * @throws ReflectionException
+     */
+    protected function createResponseBodyFromJsonResource(?ReflectionType $type): ?string
     {
-        $reflection = (isset($type) && ! $type->isBuiltin()) ? new \ReflectionClass($type->getName()) : null;
+        $reflection = (isset($type) && ! $type->isBuiltin()) ? new ReflectionClass($type->getName()) : null;
 
         $resource_name = $reflection ? $this->trimResourcePath($type->getName()) : null;
 
@@ -544,9 +556,14 @@ class SwaggerGeneratorService
         return array_keys($array) !== range(0, count($array) - 1);
     }
 
+    protected function transformRulesToArray(string|array $rules): array
+    {
+        return is_string($rules) ? explode('|', $rules) : $rules;
+    }
+
     protected function addProperty(string $property_name, $property_rule, &$component): void
     {
-        $property_rule = is_string($property_rule) ? explode('|', $property_rule) : $property_rule;
+        $property_rule = $this->transformRulesToArray($property_rule);
 
         if (! $this->hasObjects($property_rule)) {
             if ($this->hasSubParameters($property_rule)) {
@@ -570,10 +587,19 @@ class SwaggerGeneratorService
                 'type' => 'array',
             ];
 
+            $property['nullable'] = $this->isNullable($property_rule);
+
             $this->addProperty('items', $property_rule['*'], $property);
         }
 
+
+
         $component[$property_name] = $property;
+    }
+
+    protected function isNullable(array $property_rule): bool
+    {
+        return in_array('nullable', $property_rule);
     }
 
     protected function addQueryParameter($property_name, $property_info, array &$parameters, array &$other_properties)
@@ -581,6 +607,7 @@ class SwaggerGeneratorService
         if (str_ends_with($property_name, '.*')) {
             return;
         }
+        $property_rule = $this->transformRulesToArray($property_info);
 
         $type = $this->getPropertyType($property_info);
         $name = ($type === 'array') ? $property_name.'[]' : $property_name;
@@ -588,7 +615,8 @@ class SwaggerGeneratorService
         $param = [
             'name' => $name,
             'in' => 'query',
-            'required' => $this->isRequestParameterRequired($property_info),
+            'required' => $this->isRequestParameterRequired($property_rule),
+            'nullable' => $this->isNullable($property_rule)
         ];
 
         if ($type === 'array') {
@@ -602,6 +630,7 @@ class SwaggerGeneratorService
             ];
 
             $enum = $this->findSubProperties($property_name, $other_properties);
+
             if (! empty($enum)) {
                 $param['schema']['items']['enum'] = $enum;
             }
@@ -679,6 +708,9 @@ class SwaggerGeneratorService
         return is_string($parameterRule) && str_contains($parameterRule, 'required');
     }
 
+    /**
+     * @throws ReflectionException
+     */
     protected function getResponses(Route $route, string $verb): array
     {
         $responses = [];
@@ -712,9 +744,12 @@ class SwaggerGeneratorService
         return $responses;
     }
 
-    public function getStatusCode(?\ReflectionType $type): string
+    /**
+     * @throws ReflectionException
+     */
+    public function getStatusCode(?ReflectionType $type): string
     {
-        $reflection = (isset($type) && ! $type->isBuiltin()) ? new \ReflectionClass($type->getName()) : null;
+        $reflection = (isset($type) && ! $type->isBuiltin()) ? new ReflectionClass($type->getName()) : null;
         $response_name = $reflection ? $this->trimResourcePath($type->getName()) : null;
 
         if (isset($response_name)) {
@@ -733,7 +768,7 @@ class SwaggerGeneratorService
         return $this->default_responses['*'] ?? [] + $this->default_responses[$verb] ?? [];
     }
 
-    protected function getMethodReturnClass(\ReflectionMethod $method, ?Route $route = null): ?\ReflectionType
+    protected function getMethodReturnClass(ReflectionMethod $method, ?Route $route = null): ?ReflectionType
     {
         if (! $method->hasReturnType()) {
             Log::warning(($route ? $route->uri : '').'| Return object from '.$method->name.' not typed. Unable to obtain response object.');
@@ -755,22 +790,22 @@ class SwaggerGeneratorService
         return null;
     }
 
-    protected function addPath(array &$paths, array $route): void
+    protected function addPath(array &$paths, Route $route): void
     {
         try {
-            $verb = $this->getRouteVerb($route['route']);
+            $verb = $this->getRouteVerb($route);
             $path = [
-                'responses' => $this->getResponses($route['route'], $verb),
-                'security' => $this->getSecurity($route['route']),
+                'responses' => $this->getResponses($route, $verb),
+                'security' => $this->getSecurity($route),
                 'tags' => $route['tags'] ?? [],
             ];
 
-            $this->generateSummary($route['route'], $path);
-            $this->setRouteParameters($route['route'], $path);
-            $path_name = (strpos($route['route']->uri, '/') === 0) ? $route['route']->uri : '/'.$route['route']->uri;
+            $this->generateSummary($route, $path);
+            $this->setRouteParameters($route, $path);
+            $path_name = $this->getRouteName($route);
             $paths[$path_name][$verb] = $path;
         } catch (Throwable $exception) {
-            Log::info($exception->getMessage().' :'.$this->getRouteName($route['route']), $exception->getTrace());
+            Log::info($exception->getMessage().' :'.$this->getRouteName($route), $exception->getTrace());
         }
     }
 
