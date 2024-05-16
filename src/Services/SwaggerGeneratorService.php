@@ -30,7 +30,6 @@ class SwaggerGeneratorService
 
     protected OutputInterface $output;
 
-
     protected Router $router;
 
     protected RouteCollection $routes;
@@ -59,7 +58,8 @@ class SwaggerGeneratorService
     protected ?string $output_file_path = null;
 
     /**
-     * @param Router $router
+     * @param  Router  $router
+     *
      * @throws Exception
      */
     public function __construct(Router $router)
@@ -237,7 +237,7 @@ class SwaggerGeneratorService
 
     public function getRouteName(Route $route): string
     {
-        if (!str_starts_with($route->uri, '/')) {
+        if (! str_starts_with($route->uri, '/')) {
             return '/'.$route->uri;
         }
 
@@ -394,7 +394,7 @@ class SwaggerGeneratorService
         $param = [
             'name' => $parameter->getName(),
             'in' => 'path',
-            'required' => !$parameter->isOptional(),
+            'required' => ! $parameter->isOptional(),
         ];
         $url_parameters[] = $param;
     }
@@ -592,8 +592,6 @@ class SwaggerGeneratorService
             $this->addProperty('items', $property_rule['*'], $property);
         }
 
-
-
         $component[$property_name] = $property;
     }
 
@@ -616,7 +614,7 @@ class SwaggerGeneratorService
             'name' => $name,
             'in' => 'query',
             'required' => $this->isRequestParameterRequired($property_rule),
-            'nullable' => $this->isNullable($property_rule)
+            'nullable' => $this->isNullable($property_rule),
         ];
 
         if ($type === 'array') {
