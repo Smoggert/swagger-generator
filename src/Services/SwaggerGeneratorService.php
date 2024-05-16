@@ -587,10 +587,10 @@ class SwaggerGeneratorService
                 'type' => 'array',
             ];
 
-            $property['nullable'] = $this->isNullable($property_rule);
-
             $this->addProperty('items', $property_rule['*'], $property);
         }
+
+        $property['nullable'] = $this->isNullable($property_rule);
 
         $component[$property_name] = $property;
     }
@@ -600,7 +600,7 @@ class SwaggerGeneratorService
         return in_array('nullable', $property_rule);
     }
 
-    protected function addQueryParameter($property_name, $property_info, array &$parameters, array &$other_properties)
+    protected function addQueryParameter($property_name, $property_info, array &$parameters, array &$other_properties): void
     {
         if (str_ends_with($property_name, '.*')) {
             return;
