@@ -2,6 +2,7 @@
 
 namespace Smoggert\SwaggerGenerator\Traits;
 
+use Illuminate\Contracts\Support\Arrayable;
 use ReflectionClass;
 
 trait HasToArray
@@ -14,7 +15,8 @@ trait HasToArray
         $properties = $reflection->getProperties();
         foreach ($properties as $property)
         {
-            $array[$property->getName()] = $property->getValue($this);
+            $value = $property->getValue($this);
+            $array[$property->getName()] = $value instanceof Arrayable ? $value->toArray() : $value;
         }
 
         return $array;
