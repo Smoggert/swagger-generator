@@ -23,6 +23,9 @@ return [
                 ],
             ],
 
+            'parsers' => [
+                \Smoggert\SwaggerGenerator\Parsers\DefaultLaravelAttributeParser::class
+            ],
             //'output' => storage_path('text.txt'),
 
             /* -----------------------------

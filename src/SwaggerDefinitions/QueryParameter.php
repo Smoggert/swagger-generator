@@ -7,7 +7,10 @@ use Smoggert\SwaggerGenerator\Traits\HasToArray;
 
 class QueryParameter implements Arrayable
 {
-    use HasToArray;
+    use HasToArray {
+        toArray as defaultToArray;
+    }
+
     public function __construct(protected string $parameter_name, protected array $rules) {
         $this->name = $parameter_name;
     }
@@ -20,7 +23,7 @@ class QueryParameter implements Arrayable
     protected ?bool $required = null;
     protected ?bool $nullable = null;
     protected ?Schema $schema = null;
-    protected array $sub_parameters = [];
+    protected ?QueryParameter $sub_parameter = null;
 
     public function getExplode(): ?bool
     {
@@ -76,17 +79,14 @@ class QueryParameter implements Arrayable
         $this->name = $this->parameter_name . '[]';
     }
 
-    /**
-     * @return QueryParameter[]
-     */
-    public function getSubParameters(): array
+    public function getSubParameter(): ?QueryParameter
     {
-        return $this->sub_parameters;
+        return $this->sub_parameter;
     }
 
-    public function addSubParameter(QueryParameter $query_parameter): void
+    public function setSubParameter(?QueryParameter $query_parameter): void
     {
-        $this->sub_parameters[] = $query_parameter;
+        $this->sub_parameter = $query_parameter;
     }
 
     public function setRequired(?bool $required): void
@@ -102,5 +102,17 @@ class QueryParameter implements Arrayable
     public function setNullable(?bool $nullable): void
     {
         $this->nullable = $nullable;
+    }
+
+    public function toArray(): array
+    {
+        $array = $this->defaultToArray();
+
+        unset(
+            $array['sub_parameter'],
+            $array['$parameter_name']
+        );
+
+        return $array;
     }
 }

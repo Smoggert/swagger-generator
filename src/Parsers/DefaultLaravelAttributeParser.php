@@ -16,7 +16,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
     /**
      * @throws SwaggerGeneratorException
      */
-    public function __invoke(QueryParameter $query_parameter, ParsesParameter $parses_parameter = null): QueryParameter
+    public function __invoke(QueryParameter $query_parameter): QueryParameter
     {
         $type = $this->getPropertyType($query_parameter->getRules());
 
@@ -28,7 +28,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
             Schema::STRING_TYPE => $this->handleString($query_parameter)
         };
 
-        return $parses_parameter ? $parses_parameter($query_parameter) : $query_parameter;
+        return $query_parameter;
     }
 
     /**
@@ -65,15 +65,9 @@ class DefaultLaravelAttributeParser implements ParsesParameter
 
     protected function getEnumeratedValues(QueryParameter $parameter): ?array
     {
-        foreach ($parameter->getSubParameters() as $sub_parameter){
-            $enum = $this->getEnumFromRule($sub_parameter->getRules());
+        $rules = $parameter->getSubParameter()?->getRules();
 
-            if(count($enum)) {
-                return $enum;
-            }
-        }
-
-        return null;
+        return $rules ? $this->getEnumFromRule($parameter->getSubParameter()?->getRules()) : null;
     }
 
     protected function getPropertyType(array $rules): string
@@ -107,17 +101,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
         return is_string($parameterRule) && str_contains($parameterRule, 'required');
     }
 
-    protected function findSubProperties(string $property_name, array $other_properties): array
-    {
-        $subs = [];
-        if (key_exists("{$property_name}.*", $other_properties)) {
-            $subs = $this->getEnumFromRule($other_properties["{$property_name}.*"]);
-        }
-
-        return $subs;
-    }
-
-    protected function getEnumFromRule(array $rules): array
+    protected function getEnumFromRule(array $rules): ?array
     {
         foreach ($rules as $rule) {
             if (is_object($rule) && get_class($rule) === In::class) {
@@ -133,6 +117,6 @@ class DefaultLaravelAttributeParser implements ParsesParameter
             return explode(',', str_replace(['in:', '"'], '', $rule));
         }
 
-        return [];
+        return null;
     }
 }

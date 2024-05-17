@@ -20,7 +20,9 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
 use ReflectionType;
+use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
 use Smoggert\SwaggerGenerator\Models\FakeModelForSwagger as Model;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\QueryParameter;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
@@ -49,6 +51,7 @@ class SwaggerGeneratorService
     protected string $version = '3.0.0';
     protected array $info = [];
     protected array $apis = [];
+    protected array $parsers = [];
 
     protected array $supported_formats = [
         'json',
@@ -114,6 +117,7 @@ class SwaggerGeneratorService
         $this->allowed_routes = $configuration['allowed'] ?? [];
         $this->excluded_routes = $configuration['excluded'] ?? [];
         $this->info = $configuration['info'] ?? [];
+        $this->parsers = $configuration['parsers'] ?? [];
     }
 
     /**
@@ -535,10 +539,20 @@ class SwaggerGeneratorService
         return $properties;
     }
 
+    /**
+     * @throws SwaggerGeneratorException
+     */
     protected function addQueryParameters(array $properties, array &$component): void
     {
-        foreach ($properties as $property_name => $property_info) {
-            $this->addQueryParameter($property_name, $property_info, $component, $properties);
+        foreach ($properties as $property_name => $rules) {
+            if(str_ends_with($property_name,'.*')) {
+                continue;
+            }
+
+            $parameter = new QueryParameter($property_name, $this->transformRulesToArray($rules));
+            $parameter->setSubParameter($properties["$property_name.*"] ?? null);
+
+            $component[] = $this->parseQueryParameter($parameter);
         }
     }
 
@@ -600,52 +614,22 @@ class SwaggerGeneratorService
         return in_array('nullable', $property_rule);
     }
 
-    protected function addQueryParameter($property_name, $property_info, array &$parameters, array &$other_properties): void
+    /**
+     * @throws SwaggerGeneratorException
+     */
+    protected function parseQueryParameter(QueryParameter $query_parameter): array
     {
-        if (str_ends_with($property_name, '.*')) {
-            return;
-        }
-        $property_rule = $this->transformRulesToArray($property_info);
-
-        $type = $this->getPropertyType($property_info);
-        $name = ($type === 'array') ? $property_name.'[]' : $property_name;
-
-        $param = [
-            'name' => $name,
-            'in' => 'query',
-            'required' => $this->isRequestParameterRequired($property_rule),
-            'nullable' => $this->isNullable($property_rule),
-        ];
-
-        if ($type === 'array') {
-            $param['style'] = 'form';
-            $param['explode'] = true;
-            $param['schema'] = [
-                'type' => $type,
-                'items' => [
-                    'type' => 'string',
-                ],
-            ];
-
-            $enum = $this->findSubProperties($property_name, $other_properties);
-
-            if (! empty($enum)) {
-                $param['schema']['items']['enum'] = $enum;
+        foreach ($this->parsers as $parser_class) {
+            if(! class_exists($parser_class)) {
+                throw new SwaggerGeneratorException("Parser configuration [$parser_class] invalid.");
             }
+
+            $query_parameter = $parser_class($query_parameter);
         }
 
-        $parameters[] = $param;
+        return $query_parameter->toArray();
     }
 
-    protected function findSubProperties(string $property_name, array &$other_properties): array
-    {
-        $subs = [];
-        if (key_exists("{$property_name}.*", $other_properties)) {
-            $subs = $this->getEnumFromRule($other_properties["{$property_name}.*"]);
-        }
-
-        return $subs;
-    }
 
     protected function getEnumFromRule($rules): array
     {
