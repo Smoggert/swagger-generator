@@ -2,18 +2,19 @@
 
 namespace Smoggert\SwaggerGenerator\Traits;
 
-use Illuminate\Contracts\Support\Arrayable;
+use ReflectionClass;
 
 trait HasToArray
 {
     public function toArray(): array
     {
-        $array = (array) $this;
+        $array = [];
 
-        foreach ($array as &$field) {
-            if ($field instanceof Arrayable) {
-                $field = $field->toArray();
-            }
+        $reflection = new ReflectionClass($this);
+        $properties = $reflection->getProperties();
+        foreach ($properties as $property)
+        {
+            $array[$property->getName()] = $property->getValue($this);
         }
 
         return $array;

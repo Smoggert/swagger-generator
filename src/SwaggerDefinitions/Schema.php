@@ -46,7 +46,7 @@ class Schema
      */
     public function setEnum(array $enum): void
     {
-        if ($this->type !== static::STRING_TYPE) {
+        if ($this->type !== static::ARRAY_TYPE) {
             throw new SwaggerGeneratorException("Try to set enum-values for wrong type [$this->type]");
         }
 

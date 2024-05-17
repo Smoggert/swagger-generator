@@ -111,7 +111,8 @@ class QueryParameter implements Arrayable
 
         unset(
             $array['sub_parameter'],
-            $array['$parameter_name']
+            $array['parameter_name'],
+            $array['rules']
         );
 
         return $array;
