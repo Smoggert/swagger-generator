@@ -8,7 +8,7 @@ use Smoggert\SwaggerGenerator\Traits\HasToArray;
 class QueryParameter implements Arrayable
 {
     use HasToArray {
-        toArray as defaultToArray;
+        HasToArray::toArray as defaultToArray;
     }
 
     public function __construct(protected string $parameter_name, protected array $rules)

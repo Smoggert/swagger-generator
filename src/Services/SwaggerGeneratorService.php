@@ -550,7 +550,10 @@ class SwaggerGeneratorService
             }
 
             $parameter = new QueryParameter($property_name, $this->transformRulesToArray($rules));
-            $parameter->setSubParameter($properties["$property_name.*"] ?? null);
+
+            if(isset($properties["$property_name.*"])) {
+                $parameter->setSubParameter(new QueryParameter("$property_name.*", $properties["$property_name.*"]));
+            }
 
             $component[] = $this->parseQueryParameter($parameter);
         }
