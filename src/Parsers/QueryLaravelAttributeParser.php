@@ -5,16 +5,21 @@ namespace Smoggert\SwaggerGenerator\Parsers;
 use Illuminate\Validation\Rules\In;
 use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
 use Smoggert\SwaggerGenerator\Interfaces\ParsesParameter;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\Parameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\QueryParameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Schema;
 
-class DefaultLaravelAttributeParser implements ParsesParameter
+class QueryLaravelAttributeParser implements ParsesParameter
 {
     /**
      * @throws SwaggerGeneratorException
      */
-    public function __invoke(QueryParameter $query_parameter, string $context): QueryParameter
+    public function __invoke(Parameter $query_parameter, string $context): Parameter
     {
+        if(! $query_parameter instanceof QueryParameter) {
+            return $query_parameter;
+        }
+
         $type = $this->getPropertyType($query_parameter->getRules());
 
         $query_parameter->setRequired($this->isRequestParameterRequired($query_parameter->getRules()));
@@ -31,7 +36,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
     /**
      * @throws SwaggerGeneratorException
      */
-    protected function handleArray(QueryParameter $query_parameter): void
+    protected function handleArray(Parameter $query_parameter): void
     {
         $this->setDefaultPhPArray($query_parameter);
 
@@ -49,20 +54,20 @@ class DefaultLaravelAttributeParser implements ParsesParameter
         );
     }
 
-    protected function handleString(QueryParameter $query_parameter): void
+    protected function handleString(Parameter $query_parameter): void
     {
         $schema = new Schema(Schema::STRING_TYPE);
 
         $query_parameter->setSchema($schema);
     }
 
-    protected function setDefaultPhPArray(QueryParameter $parameter): void
+    protected function setDefaultPhPArray(Parameter $parameter): void
     {
         $parameter->setStyle('form');
         $parameter->setExplode(true);
     }
 
-    protected function getEnumeratedValues(QueryParameter $parameter): ?array
+    protected function getEnumeratedValues(Parameter $parameter): ?array
     {
         $rules = $parameter->getSubParameter()?->getRules();
 

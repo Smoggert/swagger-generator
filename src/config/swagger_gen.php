@@ -24,7 +24,7 @@ return [
             ],
 
             'parsers' => [
-                \Smoggert\SwaggerGenerator\Parsers\DefaultLaravelAttributeParser::class,
+                \Smoggert\SwaggerGenerator\Parsers\QueryLaravelAttributeParser::class,
             ],
             //'output' => storage_path('text.txt'),
 

@@ -24,6 +24,7 @@ use ReflectionType;
 use ReflectionUnionType;
 use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
 use Smoggert\SwaggerGenerator\Models\FakeModelForSwagger as Model;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\JsonParameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\QueryParameter;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
@@ -441,6 +442,12 @@ class SwaggerGeneratorService
      */
     protected function getRequestParameters(ReflectionClass $request): array
     {
+        $rules = $request->newInstance()->rules();
+
+        foreach ($rules as &$rule) {
+            $rule = $this->transformRulesToArray($rule);
+        }
+
         return Arr::undot($request->newInstance()->rules());
     }
 
@@ -466,6 +473,7 @@ class SwaggerGeneratorService
     protected function createRequestBodyComponent(array $parameters, string $requestName): string
     {
         $requestName = $this->trimRequestPath($requestName);
+
         if (! isset($this->schemas[$requestName])) {
             $component = [
                 'type' => 'object',
@@ -555,16 +563,41 @@ class SwaggerGeneratorService
         return $this->getProperties($parameters, true);
     }
 
-    protected function getProperties(array $parameters, bool $is_resource = false): array
+    /**
+     * @param array $properties
+     * @param bool $is_resource
+     * @return array
+     * @throws SwaggerGeneratorException
+     */
+    protected function getProperties(array $properties, bool $is_resource = false): array
     {
-        $properties = [];
-        foreach ($parameters as $parameter_name => $parameter_info) {
-            if (! is_numeric($parameter_name)) {
-                $this->addProperty($parameter_name, $is_resource ? 'string' : $parameter_info, $properties);
-            }
-        }
+        $parsed_properties = [];
 
-        return $properties;
+        foreach ($properties as $property_name => $sub_properties) {
+            if (str_ends_with($property_name, '.*')) {
+                continue;
+            }
+
+            if(is_numeric($property_name)) {
+                continue;
+            }
+
+            $parameter = new JsonParameter(
+                parameter_name: $property_name,
+                rules: $this->transformRulesToArray($rules),
+
+            );
+
+            if(isset($properties["$property_name.*"])) {
+                $parameter->setSubParameter(
+                    new JsonParameter(
+                        parameter_name: "$property_name.*",
+                        rules: $this->transformRulesToArray($properties["$property_name.*"])
+                    ));
+            }
+
+            $parsed_properties[] = $this->parseJsonParameter($parameter, "");
+        }
     }
 
     /**
@@ -657,6 +690,21 @@ class SwaggerGeneratorService
      * @throws SwaggerGeneratorException
      */
     protected function parseQueryParameter(QueryParameter $query_parameter, string $context): array
+    {
+        foreach ($this->parsers as $parser_class) {
+            if (! class_exists($parser_class)) {
+                throw new SwaggerGeneratorException("Parser configuration [$parser_class] invalid.");
+            }
+
+            $parser = new $parser_class;
+
+            $query_parameter = $parser($query_parameter, $context);
+        }
+
+        return $query_parameter->toArray();
+    }
+
+    protected function parseJsonParameter(QueryParameter $query_parameter, string $context): array
     {
         foreach ($this->parsers as $parser_class) {
             if (! class_exists($parser_class)) {
