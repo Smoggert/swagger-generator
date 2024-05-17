@@ -16,7 +16,9 @@ trait HasToArray
         foreach ($properties as $property)
         {
             $value = $property->getValue($this);
-            $array[$property->getName()] = $value instanceof Arrayable ? $value->toArray() : $value;
+            if(! is_null($value)) {
+                $array[$property->getName()] = $value instanceof Arrayable ? $value->toArray() : $value;
+            }
         }
 
         return $array;
