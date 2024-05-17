@@ -93,9 +93,9 @@ class DefaultLaravelAttributeParser implements ParsesParameter
         return in_array('nullable', $rules);
     }
 
-    protected function isRequestParameterRequired($parameterRule): bool
+    protected function isRequestParameterRequired(array $rules): bool
     {
-        return is_string($parameterRule) && str_contains($parameterRule, 'required');
+        return in_array('required', $rules);
     }
 
     protected function getEnumFromRule(array $rules): ?array
