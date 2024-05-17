@@ -512,16 +512,17 @@ class SwaggerGeneratorService
      */
     protected function getReflectionName(?ReflectionType $type): ?ReflectionClass
     {
-        if(!$type) {
+        if (! $type) {
             return null;
         }
 
-        if($type instanceof ReflectionUnionType || $type instanceof ReflectionIntersectionType) {
-            Log::info("Tried to parse a UnionType or IntersectionType. This is currently not supported.");
+        if ($type instanceof ReflectionUnionType || $type instanceof ReflectionIntersectionType) {
+            Log::info('Tried to parse a UnionType or IntersectionType. This is currently not supported.');
+
             return null;
         }
 
-        if(!$type->isBuiltin()) {
+        if (! $type->isBuiltin()) {
             new ReflectionClass($type->getName());
         }
 
@@ -574,12 +575,12 @@ class SwaggerGeneratorService
 
             $parameter = new QueryParameter($property_name, $this->transformRulesToArray($rules));
 
-            if(isset($properties["$property_name.*"])) {
+            if (isset($properties["$property_name.*"])) {
                 $parameter->setSubParameter(
                     new QueryParameter(
                         parameter_name: "$property_name.*",
                         rules: $this->transformRulesToArray($properties["$property_name.*"])
-                ));
+                    ));
             }
 
             $component[] = $this->parseQueryParameter($parameter);
