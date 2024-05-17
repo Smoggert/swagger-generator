@@ -512,12 +512,16 @@ class SwaggerGeneratorService
      */
     protected function getReflectionName(?ReflectionType $type): ?ReflectionClass
     {
+        if(!$type) {
+            return null;
+        }
+
         if($type instanceof ReflectionUnionType || $type instanceof ReflectionIntersectionType) {
             Log::info("Tried to parse a UnionType or IntersectionType. This is currently not supported.");
             return null;
         }
 
-        if($type?->isBuiltin()) {
+        if(!$type->isBuiltin()) {
             new ReflectionClass($type->getName());
         }
 
