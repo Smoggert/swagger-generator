@@ -11,7 +11,8 @@ class QueryParameter implements Arrayable
         toArray as defaultToArray;
     }
 
-    public function __construct(protected string $parameter_name, protected array $rules) {
+    public function __construct(protected string $parameter_name, protected array $rules)
+    {
         $this->name = $parameter_name;
     }
 
@@ -69,14 +70,14 @@ class QueryParameter implements Arrayable
     {
         $this->schema = $schema;
 
-        if($schema->getType() === Schema::ARRAY_TYPE) {
+        if ($schema->getType() === Schema::ARRAY_TYPE) {
             $this->setArrayName();
         }
     }
 
     protected function setArrayName(): void
     {
-        $this->name = $this->parameter_name . '[]';
+        $this->name = $this->parameter_name.'[]';
     }
 
     public function getSubParameter(): ?QueryParameter

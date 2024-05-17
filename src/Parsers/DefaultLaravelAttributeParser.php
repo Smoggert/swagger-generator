@@ -8,9 +8,6 @@ use Smoggert\SwaggerGenerator\Interfaces\ParsesParameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\QueryParameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Schema;
 
-/**
- *
- */
 class DefaultLaravelAttributeParser implements ParsesParameter
 {
     /**
@@ -108,9 +105,9 @@ class DefaultLaravelAttributeParser implements ParsesParameter
                 $rule = (string) $rule;
             }
 
-            $enum_rule = is_string($rule) && str_starts_with($rule,'in:');
+            $enum_rule = is_string($rule) && str_starts_with($rule, 'in:');
 
-            if(! $enum_rule) {
+            if (! $enum_rule) {
                 continue;
             }
 

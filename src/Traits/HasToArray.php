@@ -11,7 +11,7 @@ trait HasToArray
         $array = (array) $this;
 
         foreach ($array as &$field) {
-            if($field instanceof Arrayable) {
+            if ($field instanceof Arrayable) {
                 $field = $field->toArray();
             }
         }

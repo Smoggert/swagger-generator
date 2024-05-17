@@ -545,7 +545,7 @@ class SwaggerGeneratorService
     protected function addQueryParameters(array $properties, array &$component): void
     {
         foreach ($properties as $property_name => $rules) {
-            if(str_ends_with($property_name,'.*')) {
+            if (str_ends_with($property_name, '.*')) {
                 continue;
             }
 
@@ -620,7 +620,7 @@ class SwaggerGeneratorService
     protected function parseQueryParameter(QueryParameter $query_parameter): array
     {
         foreach ($this->parsers as $parser_class) {
-            if(! class_exists($parser_class)) {
+            if (! class_exists($parser_class)) {
                 throw new SwaggerGeneratorException("Parser configuration [$parser_class] invalid.");
             }
 
@@ -629,7 +629,6 @@ class SwaggerGeneratorService
 
         return $query_parameter->toArray();
     }
-
 
     protected function getEnumFromRule($rules): array
     {
