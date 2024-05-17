@@ -16,7 +16,7 @@ class QueryLaravelAttributeParser implements ParsesParameter
      */
     public function __invoke(Parameter $query_parameter, string $context): Parameter
     {
-        if(! $query_parameter instanceof QueryParameter) {
+        if (! $query_parameter instanceof QueryParameter) {
             return $query_parameter;
         }
 

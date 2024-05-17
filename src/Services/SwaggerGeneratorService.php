@@ -564,9 +564,10 @@ class SwaggerGeneratorService
     }
 
     /**
-     * @param array $properties
-     * @param bool $is_resource
+     * @param  array  $properties
+     * @param  bool  $is_resource
      * @return array
+     *
      * @throws SwaggerGeneratorException
      */
     protected function getProperties(array $properties, bool $is_resource = false): array
@@ -578,7 +579,7 @@ class SwaggerGeneratorService
                 continue;
             }
 
-            if(is_numeric($property_name)) {
+            if (is_numeric($property_name)) {
                 continue;
             }
 
@@ -588,7 +589,7 @@ class SwaggerGeneratorService
 
             );
 
-            if(isset($properties["$property_name.*"])) {
+            if (isset($properties["$property_name.*"])) {
                 $parameter->setSubParameter(
                     new JsonParameter(
                         parameter_name: "$property_name.*",
@@ -596,7 +597,7 @@ class SwaggerGeneratorService
                     ));
             }
 
-            $parsed_properties[] = $this->parseJsonParameter($parameter, "");
+            $parsed_properties[] = $this->parseJsonParameter($parameter, '');
         }
     }
 
@@ -616,12 +617,12 @@ class SwaggerGeneratorService
 
             );
 
-            if(isset($properties["$property_name.*"])) {
+            if (isset($properties["$property_name.*"])) {
                 $parameter->setSubParameter(
                     new QueryParameter(
                         parameter_name: "$property_name.*",
                         rules: $this->transformRulesToArray($properties["$property_name.*"])
-                ));
+                    ));
             }
 
             $component[] = $this->parseQueryParameter($parameter, $context);
