@@ -13,10 +13,9 @@ trait HasToArray
 
         $reflection = new ReflectionClass($this);
         $properties = $reflection->getProperties();
-        foreach ($properties as $property)
-        {
+        foreach ($properties as $property) {
             $value = $property->getValue($this);
-            if(! is_null($value)) {
+            if (! is_null($value)) {
                 $array[$property->getName()] = $value instanceof Arrayable ? $value->toArray() : $value;
             }
         }
