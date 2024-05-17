@@ -45,7 +45,7 @@ class Schema implements Arrayable
     /**
      * @throws SwaggerGeneratorException
      */
-    public function setEnum(array $enum): void
+    public function setEnum(?array $enum): void
     {
         if ($this->type !== static::ARRAY_TYPE) {
             throw new SwaggerGeneratorException("Try to set enum-values for wrong type [$this->type]");

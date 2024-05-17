@@ -820,7 +820,6 @@ class SwaggerGeneratorService
             $paths[$path_name][$verb] = $path;
         } catch (Throwable $exception) {
             Log::error($exception->getMessage().' :'.$this->getRouteName($route));
-            Log::info($exception);
         }
     }
 
