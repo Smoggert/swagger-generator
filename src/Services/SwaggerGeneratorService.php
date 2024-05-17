@@ -654,7 +654,9 @@ class SwaggerGeneratorService
                 throw new SwaggerGeneratorException("Parser configuration [$parser_class] invalid.");
             }
 
-            $query_parameter = $parser_class($query_parameter);
+            $parser = new $parser_class;
+
+            $query_parameter = $parser($query_parameter);
         }
 
         return $query_parameter->toArray();
