@@ -7,8 +7,8 @@ use Smoggert\SwaggerGenerator\Traits\HasToArray;
 
 class Schema
 {
-    public CONST ARRAY_TYPE = 'array';
-    public CONST STRING_TYPE = 'string';
+    public const ARRAY_TYPE = 'array';
+    public const STRING_TYPE = 'string';
 
     use HasToArray;
 
@@ -16,7 +16,8 @@ class Schema
     protected ?array $enum = null;
 
     public function __construct(protected string $type)
-    {}
+    {
+    }
 
     public function getEnum(): ?array
     {
@@ -33,7 +34,7 @@ class Schema
      */
     public function setItems(?Schema $items): void
     {
-        if($this->type !== static::ARRAY_TYPE) {
+        if ($this->type !== static::ARRAY_TYPE) {
             throw new SwaggerGeneratorException("Try to set array item schema for wrong type [$this->type]");
         }
 
@@ -45,7 +46,7 @@ class Schema
      */
     public function setEnum(array $enum): void
     {
-        if($this->type !== static::STRING_TYPE) {
+        if ($this->type !== static::STRING_TYPE) {
             throw new SwaggerGeneratorException("Try to set enum-values for wrong type [$this->type]");
         }
 
@@ -56,5 +57,4 @@ class Schema
     {
         return $this->type;
     }
-
 }
