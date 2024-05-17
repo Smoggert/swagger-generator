@@ -346,7 +346,7 @@ class SwaggerGeneratorService
             $query_parameters = [];
             foreach ($parameters as $parameter) {
                 if ($this->parameterHasType($parameter)) {
-                    $class = $this->getReflectionName($parameter->getType());
+                    $class = $this->getReflectionClass($parameter->getType());
                     if ($this->parameterClassIsFormRequest($class)) {
                         if ($this->isQueryRoute($route)) {
                             $this->parseJsonBodyParametersAsQueryParameters($class, $query_parameters);
@@ -480,7 +480,7 @@ class SwaggerGeneratorService
      */
     protected function createResponseBodyFromJsonResource(?ReflectionType $type): ?string
     {
-        $reflection = $this->getReflectionName($type);
+        $reflection = $this->getReflectionClass($type);
 
         $resource_name = $reflection ? $this->trimResourcePath($type->getName()) : null;
 
@@ -510,7 +510,7 @@ class SwaggerGeneratorService
     /**
      * @throws ReflectionException
      */
-    protected function getReflectionName(?ReflectionType $type): ?ReflectionClass
+    protected function getReflectionClass(?ReflectionType $type): ?ReflectionClass
     {
         if (! $type) {
             return null;
@@ -523,7 +523,7 @@ class SwaggerGeneratorService
         }
 
         if (! $type->isBuiltin()) {
-            new ReflectionClass($type->getName());
+            return new ReflectionClass($type->getName());
         }
 
         return null;
@@ -575,12 +575,12 @@ class SwaggerGeneratorService
 
             $parameter = new QueryParameter($property_name, $this->transformRulesToArray($rules));
 
-            if (isset($properties["$property_name.*"])) {
+            if(isset($properties["$property_name.*"])) {
                 $parameter->setSubParameter(
                     new QueryParameter(
                         parameter_name: "$property_name.*",
                         rules: $this->transformRulesToArray($properties["$property_name.*"])
-                    ));
+                ));
             }
 
             $component[] = $this->parseQueryParameter($parameter);
@@ -763,7 +763,7 @@ class SwaggerGeneratorService
      */
     public function getStatusCode(?ReflectionType $type): string
     {
-        $reflection = $this->getReflectionName($type);
+        $reflection = $this->getReflectionClass($type);
         $response_name = $reflection ? $this->trimResourcePath($type->getName()) : null;
 
         if (isset($response_name)) {
