@@ -13,7 +13,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
     /**
      * @throws SwaggerGeneratorException
      */
-    public function __invoke(QueryParameter $query_parameter): QueryParameter
+    public function __invoke(QueryParameter $query_parameter, string $context): QueryParameter
     {
         $type = $this->getPropertyType($query_parameter->getRules());
 

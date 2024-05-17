@@ -425,11 +425,15 @@ class SwaggerGeneratorService
 
     /**
      * @throws ReflectionException
+     * @throws SwaggerGeneratorException
      */
     protected function parseJsonBodyParametersAsQueryParameters(ReflectionClass $class, array &$query_parameters): void
     {
-        $requestParameters = $class->newInstance()->rules();
-        $this->addQueryParameters($requestParameters, $query_parameters);
+        $context = $class->newInstance();
+
+        $requestParameters = $context->rules();
+
+        $this->addQueryParameters($requestParameters, get_class($context), $query_parameters);
     }
 
     /**
@@ -566,14 +570,18 @@ class SwaggerGeneratorService
     /**
      * @throws SwaggerGeneratorException
      */
-    protected function addQueryParameters(array $properties, array &$component): void
+    protected function addQueryParameters(array $properties, string $context, array &$component): void
     {
         foreach ($properties as $property_name => $rules) {
             if (str_ends_with($property_name, '.*')) {
                 continue;
             }
 
-            $parameter = new QueryParameter($property_name, $this->transformRulesToArray($rules));
+            $parameter = new QueryParameter(
+                parameter_name: $property_name,
+                rules: $this->transformRulesToArray($rules),
+
+            );
 
             if(isset($properties["$property_name.*"])) {
                 $parameter->setSubParameter(
@@ -583,7 +591,7 @@ class SwaggerGeneratorService
                 ));
             }
 
-            $component[] = $this->parseQueryParameter($parameter);
+            $component[] = $this->parseQueryParameter($parameter, $context);
         }
     }
 
@@ -648,7 +656,7 @@ class SwaggerGeneratorService
     /**
      * @throws SwaggerGeneratorException
      */
-    protected function parseQueryParameter(QueryParameter $query_parameter): array
+    protected function parseQueryParameter(QueryParameter $query_parameter, string $context): array
     {
         foreach ($this->parsers as $parser_class) {
             if (! class_exists($parser_class)) {
@@ -657,7 +665,7 @@ class SwaggerGeneratorService
 
             $parser = new $parser_class;
 
-            $query_parameter = $parser($query_parameter);
+            $query_parameter = $parser($query_parameter, $context);
         }
 
         return $query_parameter->toArray();
