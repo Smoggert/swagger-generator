@@ -2,10 +2,11 @@
 
 namespace Smoggert\SwaggerGenerator\SwaggerDefinitions;
 
+use Illuminate\Contracts\Support\Arrayable;
 use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
 use Smoggert\SwaggerGenerator\Traits\HasToArray;
 
-class Schema
+class Schema implements Arrayable
 {
     public const ARRAY_TYPE = 'array';
     public const STRING_TYPE = 'string';
