@@ -18,8 +18,10 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\In;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionIntersectionType;
 use ReflectionMethod;
 use ReflectionType;
+use ReflectionUnionType;
 use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
 use Smoggert\SwaggerGenerator\Models\FakeModelForSwagger as Model;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\QueryParameter;
@@ -344,7 +346,7 @@ class SwaggerGeneratorService
             $query_parameters = [];
             foreach ($parameters as $parameter) {
                 if ($this->parameterHasType($parameter)) {
-                    $class = $parameter->getType() && ! $parameter->getType()->isBuiltin() ? new ReflectionClass($parameter->getType()->getName()) : null;
+                    $class = $this->getReflectionName($parameter->getType());
                     if ($this->parameterClassIsFormRequest($class)) {
                         if ($this->isQueryRoute($route)) {
                             $this->parseJsonBodyParametersAsQueryParameters($class, $query_parameters);
@@ -478,7 +480,7 @@ class SwaggerGeneratorService
      */
     protected function createResponseBodyFromJsonResource(?ReflectionType $type): ?string
     {
-        $reflection = (isset($type) && ! $type->isBuiltin()) ? new ReflectionClass($type->getName()) : null;
+        $reflection = $this->getReflectionName($type);
 
         $resource_name = $reflection ? $this->trimResourcePath($type->getName()) : null;
 
@@ -500,6 +502,23 @@ class SwaggerGeneratorService
 
                 return $this->wrapString('#/components/schemas/'.$resource_name);
             }
+        }
+
+        return null;
+    }
+
+    /**
+     * @throws ReflectionException
+     */
+    protected function getReflectionName(?ReflectionType $type): ?ReflectionClass
+    {
+        if($type instanceof ReflectionUnionType || $type instanceof ReflectionIntersectionType) {
+            Log::info("Tried to parse a {$type::class}. This is currently not supported.");
+            return null;
+        }
+
+        if($type?->isBuiltin()) {
+            new ReflectionClass($type->getName());
         }
 
         return null;
@@ -737,7 +756,7 @@ class SwaggerGeneratorService
      */
     public function getStatusCode(?ReflectionType $type): string
     {
-        $reflection = (isset($type) && ! $type->isBuiltin()) ? new ReflectionClass($type->getName()) : null;
+        $reflection = $this->getReflectionName($type);
         $response_name = $reflection ? $this->trimResourcePath($type->getName()) : null;
 
         if (isset($response_name)) {
