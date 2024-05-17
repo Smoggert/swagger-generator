@@ -36,11 +36,13 @@ class DefaultLaravelAttributeParser implements ParsesParameter
         $this->setDefaultPhPArray($query_parameter);
 
         $schema = new Schema(Schema::ARRAY_TYPE);
-        $schema->setItems(
-            new Schema(Schema::STRING_TYPE)
-        );
+        $array_values = new Schema(Schema::STRING_TYPE);
 
-        $schema->setEnum($this->getEnumeratedValues($query_parameter));
+        $array_values->setEnum($this->getEnumeratedValues($query_parameter));
+
+        $schema->setItems(
+            $array_values
+        );
 
         $query_parameter->setSchema(
             $schema
@@ -64,7 +66,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
     {
         $rules = $parameter->getSubParameter()?->getRules();
 
-        return $rules ? $this->getEnumFromRule($parameter->getSubParameter()?->getRules()) : null;
+        return $rules ? $this->getEnumFromRule($rules) : null;
     }
 
     protected function getPropertyType(array $rules): string
@@ -101,7 +103,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
     protected function getEnumFromRule(array $rules): ?array
     {
         foreach ($rules as $rule) {
-            if (is_object($rule) && get_class($rule) === In::class) {
+            if ($rule instanceof In::class) {
                 $rule = (string) $rule;
             }
 
