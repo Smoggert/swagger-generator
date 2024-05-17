@@ -678,7 +678,7 @@ class SwaggerGeneratorService
         }
 
         foreach ($rules as $rule) {
-            if (is_object($rule) && get_class($rule) === In::class) {
+            if ($rule instanceof In) {
                 return explode(',', str_replace(['in:', '"'], '', (string) $rule));
             }
         }

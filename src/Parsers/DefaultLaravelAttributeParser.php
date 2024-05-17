@@ -103,7 +103,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
     protected function getEnumFromRule(array $rules): ?array
     {
         foreach ($rules as $rule) {
-            if ($rule instanceof In::class) {
+            if ($rule instanceof In) {
                 $rule = (string) $rule;
             }
 
