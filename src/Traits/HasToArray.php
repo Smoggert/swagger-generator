@@ -12,8 +12,7 @@ trait HasToArray
 
         $reflection = new ReflectionClass($this);
         $properties = $reflection->getProperties();
-        foreach ($properties as $property)
-        {
+        foreach ($properties as $property) {
             $array[$property->getName()] = $property->getValue($this);
         }
 
