@@ -513,7 +513,7 @@ class SwaggerGeneratorService
     protected function getReflectionName(?ReflectionType $type): ?ReflectionClass
     {
         if($type instanceof ReflectionUnionType || $type instanceof ReflectionIntersectionType) {
-            Log::info("Tried to parse a {$type::class}. This is currently not supported.");
+            Log::info("Tried to parse a UnionType or IntersectionType. This is currently not supported.");
             return null;
         }
 
