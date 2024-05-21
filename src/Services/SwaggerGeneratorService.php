@@ -591,7 +591,7 @@ class SwaggerGeneratorService
     protected function fixProperties(array $properties): array
     {
         $fixed = [];
-        foreach ($properties as $key => $property) {-
+        foreach ($properties as $key => $property) {
             $fixed[$key] =  $this->transformRulesToArray($property);
         }
 
