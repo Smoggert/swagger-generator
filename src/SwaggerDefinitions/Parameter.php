@@ -23,6 +23,8 @@ class Parameter implements Arrayable
     protected ?bool $required = null;
     protected ?bool $nullable = null;
     protected ?Schema $schema = null;
+    protected ?Parameter $array_type = null;
+    protected array $sub_parameters = [];
 
     public function getExplode(): ?bool
     {
@@ -114,5 +116,30 @@ class Parameter implements Arrayable
     public function setDescription(?string $description): void
     {
         $this->description = $description;
+    }
+
+    public function getArrayType(): ?Parameter
+    {
+        return $this->array_type;
+    }
+
+    public function setArrayType(?Parameter $query_parameter): void
+    {
+        $this->array_type = $query_parameter;
+    }
+
+    public function addSubParameter(Parameter $parameter)
+    {
+        $this->sub_parameters[] = $parameter;
+    }
+
+    public function getSubParameters(): array
+    {
+        return $this->sub_parameters;
+    }
+
+    public function hasSubParameters(): bool
+    {
+        return ! empty($this->sub_parameters);
     }
 }

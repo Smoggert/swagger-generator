@@ -10,6 +10,7 @@ class Schema implements Arrayable
 {
     public const ARRAY_TYPE = 'array';
     public const STRING_TYPE = 'string';
+    public const OBJECT_TYPE = 'object';
 
     use HasToArray;
 

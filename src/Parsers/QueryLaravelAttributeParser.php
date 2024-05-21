@@ -70,7 +70,7 @@ class QueryLaravelAttributeParser implements ParsesParameter
 
     protected function getEnumeratedValues(Parameter $parameter): ?array
     {
-        $rules = $parameter->getSubParameter()?->getRules();
+        $rules = $parameter->getArrayType()?->getRules();
 
         return $rules ? $this->getEnumFromRules($rules) : null;
     }

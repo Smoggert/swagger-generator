@@ -2,7 +2,6 @@
 
 namespace Smoggert\SwaggerGenerator\Parsers;
 
-use Illuminate\Validation\Rules\In;
 use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
 use Smoggert\SwaggerGenerator\Interfaces\ParsesParameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\JsonParameter;
@@ -25,6 +24,19 @@ class JsonLaravelAttributeParser implements ParsesParameter
         $rules = $parameter->getRules();
 
         $parameter->setNullable($this->isNullable($rules));
+
+        $type = $this->getPropertyType($parameter->getRules());
+
+        $parameter->setRequired($this->isRequestParameterRequired($parameter->getRules()));
+        $parameter->setNullable($this->isNullable($parameter->getRules()));
+
+        match ($type) {
+            Schema::ARRAY_TYPE => $this->handleArray($parameter),
+            Schema::STRING_TYPE => $this->handleString($parameter),
+            Schema::OBJECT_TYPE => $this->handObject($parameter)
+        };
+
+        return $parameter;
 
         if (! $this->hasObjects($rules)) {
             if ($this->hasSubParameters($rules)) {
@@ -60,6 +72,21 @@ class JsonLaravelAttributeParser implements ParsesParameter
      */
     protected function handleArray(Parameter $parameter): void
     {
+        if($parameter->hasSubParameters()) {
+            $schema = new Schema(Schema::OBJECT_TYPE);
+            $array_values = new Schema(Schema::STRING_TYPE);
+
+            $array_values->setEnum($this->getEnumeratedValues($parameter));
+            foreach ($parameter->getSubParameters() as &$sub_parameter)
+            $schema->setItems(
+                $array_values
+            );
+
+            $parameter->setSchema(
+                $schema
+            );
+        }
+
         $this->setDefaultPhPArray($parameter);
 
         $schema = new Schema(Schema::ARRAY_TYPE);
@@ -105,7 +132,7 @@ class JsonLaravelAttributeParser implements ParsesParameter
 
     protected function getEnumeratedValues(Parameter $parameter): ?array
     {
-        $rules = $parameter->getSubParameter()?->getRules();
+        $rules = $parameter->getArrayType()?->getRules();
 
         return $rules ? $this->getEnumFromRules($rules) : null;
     }

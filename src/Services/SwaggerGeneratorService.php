@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\In;
+use Mockery\Generator\Parameter;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionIntersectionType;
@@ -470,6 +471,9 @@ class SwaggerGeneratorService
         return $schemes;
     }
 
+    /**
+     * @throws SwaggerGeneratorException
+     */
     protected function createRequestBodyComponent(array $parameters, string $requestName): string
     {
         $requestName = $this->trimRequestPath($requestName);
@@ -558,6 +562,9 @@ class SwaggerGeneratorService
         return str_replace('\\', '', $requestName);
     }
 
+    /**
+     * @throws SwaggerGeneratorException
+     */
     protected function getPropertiesFromResource(array $parameters): array
     {
         return $this->getProperties($parameters, true);
@@ -573,7 +580,7 @@ class SwaggerGeneratorService
     {
         $parsed_properties = [];
 
-        foreach ($properties as $property_name => $sub_properties) {
+        foreach ($properties as $property_name => $sub_properties_and_rules) {
             if (str_ends_with($property_name, '.*')) {
                 continue;
             }
@@ -584,20 +591,13 @@ class SwaggerGeneratorService
 
             $parameter = new JsonParameter(
                 parameter_name: $property_name,
-                rules: $this->transformRulesToArray($rules),
-
+                rules: $this->transformRulesToArray($sub_properties_and_rules),
             );
 
-            if(isset($properties["$property_name.*"])) {
-                $parameter->setSubParameter(
-                    new JsonParameter(
-                        parameter_name: "$property_name.*",
-                        rules: $this->transformRulesToArray($properties["$property_name.*"])
-                    ));
-            }
-
-            $parsed_properties[] = $this->parseJsonParameter($parameter, "");
+            $parsed_properties[] = $this->parseJsonParameter($parameter, "")->toArray();
         }
+
+        return $parsed_properties;
     }
 
     /**
@@ -617,7 +617,7 @@ class SwaggerGeneratorService
             );
 
             if(isset($properties["$property_name.*"])) {
-                $parameter->setSubParameter(
+                $parameter->setArrayType(
                     new QueryParameter(
                         parameter_name: "$property_name.*",
                         rules: $this->transformRulesToArray($properties["$property_name.*"])
@@ -704,7 +704,10 @@ class SwaggerGeneratorService
         return $query_parameter->toArray();
     }
 
-    protected function parseJsonParameter(QueryParameter $query_parameter, string $context): array
+    /**
+     * @throws SwaggerGeneratorException
+     */
+    protected function parseJsonParameter(JsonParameter $query_parameter, string $context): JsonParameter
     {
         foreach ($this->parsers as $parser_class) {
             if (! class_exists($parser_class)) {
@@ -716,7 +719,7 @@ class SwaggerGeneratorService
             $query_parameter = $parser($query_parameter, $context);
         }
 
-        return $query_parameter->toArray();
+        return $query_parameter;
     }
 
     protected function getEnumFromRule($rules): array
