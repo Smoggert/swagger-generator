@@ -591,7 +591,8 @@ class SwaggerGeneratorService
                     ));
             }
 
-            $component[$parameter->getName()] = $this->parseQueryParameter($parameter, $context);
+            $parsed =  $this->parseParameter($parameter, $context);
+            $component[$parameter->getName()] = $parsed->getSchema()->toArray();
         }
     }
 
@@ -656,7 +657,7 @@ class SwaggerGeneratorService
     /**
      * @throws SwaggerGeneratorException
      */
-    protected function parseQueryParameter(Parameter $query_parameter, string $context): array
+    protected function parseParameter(Parameter $query_parameter, string $context): Parameter
     {
         foreach ($this->parsers as $parser_class) {
             if (! class_exists($parser_class)) {
@@ -668,7 +669,7 @@ class SwaggerGeneratorService
             $query_parameter = $parser($query_parameter, $context);
         }
 
-        return $query_parameter->toArray();
+        return $query_parameter;
     }
 
     protected function getEnumFromRule($rules): array
