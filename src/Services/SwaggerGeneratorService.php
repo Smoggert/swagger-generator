@@ -348,7 +348,7 @@ class SwaggerGeneratorService
                     $class = $this->getReflectionClass($parameter->getType());
                     if ($this->parameterClassIsFormRequest($class)) {
                         if ($this->isQueryRoute($route)) {
-                            $this->parseFormRequest($class, $query_parameters);
+                            $this->parseFormRequest($class, $query_parameters, Parameter::IN_QUERY);
                         } else {
                             $this->parseJsonBodyParameters($class, $object);
                         }
@@ -422,13 +422,13 @@ class SwaggerGeneratorService
      * @throws ReflectionException
      * @throws SwaggerGeneratorException
      */
-    protected function parseFormRequest(ReflectionClass $class, array &$query_parameters): void
+    protected function parseFormRequest(ReflectionClass $class, array &$query_parameters, string $parameter_location): void
     {
         $context = $class->newInstance();
 
         $requestParameters = $context->rules();
 
-        $this->addParameters($requestParameters, get_class($context), $query_parameters, Parameter::IN_BODY);
+        $this->addParameters($requestParameters, get_class($context), $query_parameters, $parameter_location);
     }
 
     /**
@@ -464,7 +464,7 @@ class SwaggerGeneratorService
 
         if (! isset($this->schemas[$requestName])) {
             $properties = [];
-            $this->parseFormRequest($class, $properties);
+            $this->parseFormRequest($class, $properties, Parameter::IN_BODY);
 
             $component = [
                 'type' => Schema::OBJECT_TYPE,
