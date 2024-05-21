@@ -612,25 +612,25 @@ class SwaggerGeneratorService
         );
 
         $un_dotted_properties = Arr::undot($properties);
-
-        $array_rules = Arr::get($un_dotted_properties, '*');
-        // ENUM HANDLING / ARRAY HANDLING
-        if (! empty($array_rules)) {
-            $parameter->setArrayType(
-                $this->createParameter(
-                    name: "$name.*",
-                    rules: array_filter($array_rules, function($key) {return is_numeric($key);}, ARRAY_FILTER_USE_KEY),
-                    in: $in,
-                    properties: $properties,
-                    context: $context
-                ));
-        }
-
-        // OBJECT HANDLING
-
         $sub_properties = Arr::get($un_dotted_properties, $name);
 
         if(is_array($sub_properties) && count($sub_properties)) {
+            $array_rules = Arr::get($sub_properties, '*');
+            // ENUM HANDLING / ARRAY HANDLING
+            if (! empty($array_rules)) {
+                $parameter->setArrayType(
+                    $this->createParameter(
+                        name: "$name.*",
+                        rules: array_filter($array_rules, function($key) {return is_numeric($key);}, ARRAY_FILTER_USE_KEY),
+                        in: $in,
+                        properties: $properties,
+                        context: $context
+                    ));
+            }
+
+            // OBJECT HANDLING
+            unset($sub_properties['*']);
+
             foreach ($sub_properties as $sub_property_name => $sub_property_rules) {
                 if(is_numeric($sub_property_name)) {
                     continue;
@@ -649,6 +649,7 @@ class SwaggerGeneratorService
                 );
             }
         }
+
 
         return $this->parseParameter($parameter, $context);
     }
