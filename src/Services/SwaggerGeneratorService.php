@@ -572,7 +572,7 @@ class SwaggerGeneratorService
     protected function addParameters(array $properties, string $context, array &$component, string $in = Parameter::IN_QUERY): void
     {
         foreach ($properties as $property_name => $rules) {
-            if (str_contains($property_name, '*')) {
+            if (str_contains($property_name, '.')) {
                 continue;
             }
 

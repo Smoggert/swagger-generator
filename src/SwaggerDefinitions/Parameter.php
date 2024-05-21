@@ -30,9 +30,9 @@ class Parameter implements Arrayable
     protected ?Parameter $array_type = null;
 
     /**
-     * @var Parameter[] $subParameters
+     * @var Parameter[] $sub_parameters
      */
-    protected array $subParameters = [];
+    protected array $sub_parameters = [];
 
     public function getExplode(): ?bool
     {
@@ -141,16 +141,16 @@ class Parameter implements Arrayable
 
     public function getSubParameters(): array
     {
-        return $this->subParameters;
+        return $this->sub_parameters;
     }
 
-    public function setSubParameters(array $subParameters): void
+    public function setSubParameters(array $sub_parameters): void
     {
-        $this->subParameters = $subParameters;
+        $this->sub_parameters = $sub_parameters;
     }
 
     public function addSubParameter(Parameter $parameter): void
     {
-        $this->subParameters[] = $parameter;
+        $this->sub_parameters[] = $parameter;
     }
 }
