@@ -615,11 +615,12 @@ class SwaggerGeneratorService
         //TODO: fix string rules getting removed due to undot
 
         $sub_properties = Arr::get($un_dotted_properties, $name. ".*");
-        if(count($sub_properties)) {
+        if(is_array($sub_properties) && count($sub_properties)) {
             foreach ($sub_properties as $sub_property_name => $sub_property_rules) {
+                $sub_rules = $this->transformRulesToArray($sub_property_rules);
                 $sub_parameter = $this->createParameter(
                     name: "$name.*.$sub_property_name",
-                    rules: array_filter($sub_property_rules, function($key) {return is_numeric($key);}, ARRAY_FILTER_USE_KEY),
+                    rules: array_filter($sub_rules, function($key) {return is_numeric($key);}, ARRAY_FILTER_USE_KEY),
                     in: $in,
                     properties: $properties,
                     context: $context
