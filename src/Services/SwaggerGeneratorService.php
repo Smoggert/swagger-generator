@@ -142,7 +142,7 @@ class SwaggerGeneratorService
             }
         }
 
-        throw new SwaggerGeneratorException("No apis configured.");
+        throw new SwaggerGeneratorException('No apis configured.');
     }
 
     /**
