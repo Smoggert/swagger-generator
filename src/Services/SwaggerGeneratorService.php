@@ -25,6 +25,7 @@ use ReflectionUnionType;
 use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
 use Smoggert\SwaggerGenerator\Models\FakeModelForSwagger as Model;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Parameter;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\Schema;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
@@ -466,7 +467,7 @@ class SwaggerGeneratorService
             $this->parseFormRequest($class, $properties);
 
             $component = [
-                'type' => 'object',
+                'type' => Schema::OBJECT_TYPE,
                 'required' => $this->getRequiredParameters($this->getRequestParameters($class)),
                 'properties' => $properties,
             ];
@@ -590,7 +591,7 @@ class SwaggerGeneratorService
                     ));
             }
 
-            $component[] = $this->parseQueryParameter($parameter, $context);
+            $component[$parameter->getName()] = $this->parseQueryParameter($parameter, $context);
         }
     }
 
