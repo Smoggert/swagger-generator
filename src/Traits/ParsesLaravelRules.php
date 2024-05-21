@@ -8,11 +8,23 @@ use Smoggert\SwaggerGenerator\SwaggerDefinitions\Schema;
 
 trait ParsesLaravelRules
 {
-    protected function getEnumeratedValues(Parameter $parameter): ?array
+    protected function getEnumForParameter(Parameter $parameter): ?array
     {
-        $rules = $parameter->getArrayType()?->getRules();
+        foreach ($parameter->getRules() as $rule) {
+            if ($rule instanceof In) {
+                $rule = (string) $rule;
+            }
 
-        return $rules ? $this->getEnumFromRule($rules) : null;
+            $enum_rule = is_string($rule) && str_starts_with($rule, 'in:');
+
+            if (! $enum_rule) {
+                continue;
+            }
+
+            return explode(',', str_replace(['in:', '"'], '', $rule));
+        }
+
+        return null;
     }
 
     protected function getPropertyType(Parameter $parameter): string
@@ -50,25 +62,6 @@ trait ParsesLaravelRules
     protected function isRequestParameterRequired(array $rules): bool
     {
         return in_array('required', $rules);
-    }
-
-    protected function getEnumFromRule(array $rules): ?array
-    {
-        foreach ($rules as $rule) {
-            if ($rule instanceof In) {
-                $rule = (string) $rule;
-            }
-
-            $enum_rule = is_string($rule) && str_starts_with($rule, 'in:');
-
-            if (! $enum_rule) {
-                continue;
-            }
-
-            return explode(',', str_replace(['in:', '"'], '', $rule));
-        }
-
-        return null;
     }
 
     protected function findMinimum(array $rules): ?int

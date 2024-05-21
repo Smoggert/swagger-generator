@@ -60,7 +60,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
 
         $schema->setMinLength($this->findMinimum($parameter->getRules()));
         $schema->setMaxLength($this->findMaximum($parameter->getRules()));
-        $schema->setEnum($this->getEnumeratedValues($parameter));
+        $schema->setEnum($this->getEnumForParameter($parameter));
 
         $parameter->setSchema($schema);
     }
