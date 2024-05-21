@@ -12,10 +12,13 @@ class SwaggerGeneratorServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    public function register()
+    public function register(): void
     {
         $this->mergeConfigFrom(
-            __DIR__.'/config/swagger_gen.php', 'swagger_gen'
+            __DIR__.'/config/smoggert_swagger.php', 'swagger_gen'
+        );
+        $this->mergeConfigFrom(
+            __DIR__.'/config/smoggert_swagger.php', 'smoggert_swagger'
         );
     }
 
@@ -24,10 +27,10 @@ class SwaggerGeneratorServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    public function boot()
+    public function boot(): void
     {
         $this->publishes([
-            __DIR__.'/config/swagger_gen.php' => \config_path('swagger_gen.php'),
+            __DIR__.'/config/smoggert_swagger.php' => \config_path('smoggert_swagger.php'),
         ], 'config');
 
         if ($this->app->runningInConsole()) {
