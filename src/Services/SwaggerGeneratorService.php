@@ -577,14 +577,12 @@ class SwaggerGeneratorService
 
             $parameter = $this->createParameter($property_name, $this->transformRulesToArray($rules), $in, $properties, $context);
 
-            $parsed =  $this->parseParameter($parameter, $context);
-
             if($in === Parameter::IN_BODY) {
-                $component[$parameter->getName()] = $parsed->getSchema()->toArray();
+                $component[$parameter->getName()] = $parameter->getSchema()->toArray();
                 continue;
             }
 
-            $component[] = $parsed->toArray();
+            $component[] = $parameter->toArray();
         }
     }
 
@@ -614,8 +612,11 @@ class SwaggerGeneratorService
         // OBJECT HANDLING
         $un_dotted_properties = Arr::undot($properties);
 
-        if(Arr::get($un_dotted_properties, $name. ".*")) {
-            foreach ($un_dotted_properties as $sub_property_name => $sub_property_rules) {
+        //TODO: fix string rules getting removed due to undot
+
+        $sub_properties = Arr::get($un_dotted_properties, $name. ".*");
+        if(count($sub_properties)) {
+            foreach ($sub_properties as $sub_property_name => $sub_property_rules) {
                 $sub_parameter = $this->createParameter(
                     name: "$name.*.$sub_property_name",
                     rules: array_filter($sub_property_rules, function($key) {return is_numeric($key);}, ARRAY_FILTER_USE_KEY),
@@ -624,15 +625,13 @@ class SwaggerGeneratorService
                     context: $context
                 );
 
-                $sub_parameter = $this->parseParameter($sub_parameter, $context);
-
                 $parameter->addSubParameter(
                     $sub_parameter
                 );
             }
         }
 
-        return $parameter;
+        return $this->parseParameter($parameter, $context);
     }
 
     protected function hasObjects(array $array): bool
