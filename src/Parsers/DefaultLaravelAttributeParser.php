@@ -7,7 +7,6 @@ use Smoggert\SwaggerGenerator\Interfaces\ParsesParameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\QueryParameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Schema;
 use Smoggert\SwaggerGenerator\Traits\ParsesLaravelRules;
-use function Aws\default_user_agent;
 
 class DefaultLaravelAttributeParser implements ParsesParameter
 {
