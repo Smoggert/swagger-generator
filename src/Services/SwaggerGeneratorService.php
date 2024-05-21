@@ -570,12 +570,14 @@ class SwaggerGeneratorService
      */
     protected function addParameters(array $properties, string $context, array &$component, string $in = Parameter::IN_QUERY): void
     {
-        foreach ($properties as $property_name => $rules) {
+        $fixed = $this->fixProperties($properties);
+
+        foreach ($fixed as $property_name => $rules) {
             if (str_contains($property_name, '.')) {
                 continue;
             }
 
-            $parameter = $this->createParameter($property_name, $this->transformRulesToArray($rules), $in, $properties, $context);
+            $parameter = $this->createParameter($property_name, $this->transformRulesToArray($rules), $in, $fixed, $context);
 
             if($in === Parameter::IN_BODY) {
                 $component[$parameter->getName()] = $parameter->getSchema()->toArray();
@@ -584,6 +586,16 @@ class SwaggerGeneratorService
 
             $component[] = $parameter->toArray();
         }
+    }
+
+    protected function fixProperties(array $properties): array
+    {
+        $fixed = [];
+        foreach ($properties as $key => $property) {-
+            $fixed[$key] =  $this->transformRulesToArray($property);
+        }
+
+        return $fixed;
     }
 
     /**
@@ -612,15 +624,17 @@ class SwaggerGeneratorService
         // OBJECT HANDLING
         $un_dotted_properties = Arr::undot($properties);
 
-        //TODO: fix string rules getting removed due to undot
-
         $sub_properties = Arr::get($un_dotted_properties, $name. ".*");
+
         if(is_array($sub_properties) && count($sub_properties)) {
             foreach ($sub_properties as $sub_property_name => $sub_property_rules) {
-                $sub_rules = $this->transformRulesToArray($sub_property_rules);
+                if(is_numeric($sub_property_name)) {
+                    continue;
+                }
+
                 $sub_parameter = $this->createParameter(
                     name: "$name.*.$sub_property_name",
-                    rules: array_filter($sub_rules, function($key) {return is_numeric($key);}, ARRAY_FILTER_USE_KEY),
+                    rules: array_filter($sub_property_rules, function($key) {return is_numeric($key);}, ARRAY_FILTER_USE_KEY),
                     in: $in,
                     properties: $properties,
                     context: $context
