@@ -5,6 +5,7 @@ namespace Smoggert\SwaggerGenerator\Parsers;
 use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
 use Smoggert\SwaggerGenerator\Interfaces\ParsesParameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Parameter;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\PropertiesCollection;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Schema;
 use Smoggert\SwaggerGenerator\Traits\ParsesLaravelRules;
 
@@ -94,9 +95,14 @@ class DefaultLaravelAttributeParser implements ParsesParameter
     {
         $schema = new Schema(Schema::OBJECT_TYPE);
 
+        $properties = new PropertiesCollection();
+
         foreach ($parameter->getSubParameters() as $sub_parameter) {
-            $schema->addProperty($sub_parameter);
+            $properties->add($sub_parameter->getName(), $sub_parameter->getSchema());
         }
+
+        $schema->setProperties($properties);
+
         $parameter->setSchema($schema);
     }
 

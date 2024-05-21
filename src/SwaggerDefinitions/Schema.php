@@ -24,7 +24,7 @@ class Schema implements Arrayable
     protected ?int $minLength = null;
     protected ?int $maxLength = null;
 
-    protected ?array $properties = null;
+    protected ?PropertiesCollection $properties = null;
 
     public function __construct(protected string $type)
     {
@@ -109,20 +109,13 @@ class Schema implements Arrayable
         $this->maxLength = $maxLength;
     }
 
-    public function getProperties(): array
+    public function getProperties(): PropertiesCollection
     {
         return $this->properties;
     }
 
-    public function setProperties(array $properties): void
+    public function setProperties(PropertiesCollection $properties): void
     {
         $this->properties = $properties;
-    }
-
-    public function addProperty(Parameter $property): void
-    {
-        $this->properties = $this->properties ?? [];
-
-        $this->properties[$property->getName()] = $property->getSchema();
     }
 }
