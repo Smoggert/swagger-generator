@@ -12,12 +12,13 @@ use Smoggert\SwaggerGenerator\Traits\ParsesLaravelRules;
 class QueryLaravelAttributeParser implements ParsesParameter
 {
     use ParsesLaravelRules;
+
     /**
      * @throws SwaggerGeneratorException
      */
     public function __invoke(Parameter $parameter, string $context): Parameter
     {
-        if(! $parameter instanceof QueryParameter) {
+        if (! $parameter instanceof QueryParameter) {
             return $parameter;
         }
 
