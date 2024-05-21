@@ -9,7 +9,7 @@ class Parameter implements Arrayable
 {
     public const IN_QUERY = 'query';
     public const IN_BODY = 'body';
-    public const IN_URL = 'query';
+    public const IN_URL = 'path';
 
     use HasToArray {
         HasToArray::toArray as defaultToArray;

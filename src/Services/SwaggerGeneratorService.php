@@ -20,6 +20,7 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionIntersectionType;
 use ReflectionMethod;
+use ReflectionParameter;
 use ReflectionType;
 use ReflectionUnionType;
 use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
@@ -33,6 +34,7 @@ class SwaggerGeneratorService
 {
     protected const CONFIG_FILE_NAME = 'smoggert_swagger';
     protected const OLD_CONFIG_FILE_NAME = 'swagger_gen';
+    protected const PATH_CONTEXT = 'PATH_URL';
 
     protected OutputInterface $output;
 
@@ -164,11 +166,15 @@ class SwaggerGeneratorService
     {
         $swagger_file['tags'] = [];
 
+        sort($this->tags);
+
         foreach ($this->tags as $tag) {
             $swagger_file['tags'][] = [
                 'name' => $tag,
             ];
         }
+
+
     }
 
     protected function filterRoutes(): void
@@ -335,32 +341,45 @@ class SwaggerGeneratorService
 
     /**
      * @throws ReflectionException
+     * @throws SwaggerGeneratorException
      */
     protected function setRouteParameters(Route $route, array &$object): void
     {
         $parameters = $this->getRouteParameters($route);
         if (! empty($parameters)) {
-            $url_parameters = [];
-            $query_parameters = [];
+            $route_parameters = [];
             foreach ($parameters as $parameter) {
-                if ($this->parameterHasType($parameter)) {
-                    $class = $this->getReflectionClass($parameter->getType());
-                    if ($this->parameterClassIsFormRequest($class)) {
-                        if ($this->isQueryRoute($route)) {
-                            $this->parseFormRequest($class, $query_parameters, Parameter::IN_QUERY);
-                        } else {
-                            $this->parseJsonBodyParameters($class, $object);
-                        }
-                    } else {
-                        $this->parseUrlParameter($parameter, $url_parameters);
-                    }
-                } else {
-                    Log::warning($route->uri."| Couldn't parse ".$parameter.', parameter is not typed on ');
-                }
+                $this->handleRouteParameter($route, $parameter, $route_parameters, $object);
             }
-            $all_parameters = array_merge($url_parameters, $query_parameters);
-            $object['parameters'] = $all_parameters;
+
+            $object['parameters'] = $route_parameters;
         }
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws SwaggerGeneratorException
+     */
+    protected function handleRouteParameter(Route $route, ReflectionParameter $parameter, array &$route_parameters, array &$object): void
+    {
+        if (! $this->parameterHasType($parameter)) {
+            Log::warning($route->uri."| Couldn't parse ".$parameter.', parameter is not typed on ');
+            return;
+        }
+
+        $class = $this->getReflectionClass($parameter->getType());
+
+        if (! $this->parameterClassIsFormRequest($class)) {
+            $this->parseUrlParameter($parameter, $route_parameters);
+            return;
+        }
+
+        if ($this->isQueryRoute($route)) {
+            $this->parseFormRequest($class, $route_parameters, Parameter::IN_QUERY);
+            return;
+        }
+
+        $this->parseJsonBodyParameters($class, $object);
     }
 
     protected function isQueryRoute(Route $route): bool
@@ -368,7 +387,7 @@ class SwaggerGeneratorService
         return $this->getRouteVerb($route) === 'get';
     }
 
-    protected function parameterHasType(\ReflectionParameter $parameter): bool
+    protected function parameterHasType(ReflectionParameter $parameter): bool
     {
         return $parameter->hasType();
     }
@@ -393,14 +412,19 @@ class SwaggerGeneratorService
         return isset($class) && $class->isSubclassOf(ResourceCollection::class);
     }
 
-    protected function parseUrlParameter(\ReflectionParameter $parameter, array &$url_parameters): void
+    protected function parseUrlParameter(ReflectionParameter $reflection_parameter, array &$url_parameters): void
     {
-        $param = [
-            'name' => $parameter->getName(),
-            'in' => 'path',
-            'required' => ! $parameter->isOptional(),
-        ];
-        $url_parameters[] = $param;
+        $parameter = new Parameter(
+            $reflection_parameter->getName(),
+            [],
+            Parameter::IN_URL
+        );
+
+        $parameter = $this->parseParameter($parameter, self::PATH_CONTEXT);
+
+        $parameter->setRequired(! $reflection_parameter->isOptional());
+
+        $url_parameters[] = $parameter->toArray();
     }
 
     protected function parseJsonBodyParameters(ReflectionClass $class, array &$object): void
@@ -414,6 +438,7 @@ class SwaggerGeneratorService
                 ],
             ],
         ];
+
         $object['requestBody'] = $body;
     }
 
