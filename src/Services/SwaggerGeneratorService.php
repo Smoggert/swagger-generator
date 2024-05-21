@@ -130,14 +130,14 @@ class SwaggerGeneratorService
     protected function validateConfiguration(): void
     {
         if (empty($this->apis)) {
-            throw new SwaggerGeneratorException("No apis configured.");
+            throw new SwaggerGeneratorException('No apis configured.');
         }
         foreach ($this->apis as &$api) {
-            if (!is_array($api)) {
+            if (! is_array($api)) {
                 throw new SwaggerGeneratorException('Objects within the apis config should be arrays.');
             }
 
-            if (!array_key_exists('default', $this->apis)) {
+            if (! array_key_exists('default', $this->apis)) {
                 throw new SwaggerGeneratorException('Please provide an api.');
             }
 
