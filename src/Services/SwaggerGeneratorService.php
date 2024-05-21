@@ -433,7 +433,7 @@ class SwaggerGeneratorService
 
     protected function parseJsonBodyParameters(ReflectionClass $class, array &$object): void
     {
-        if(empty($class->newInstance()->rules())) {
+        if (empty($class->newInstance()->rules())) {
             return;
         }
 
