@@ -15,22 +15,27 @@ trait ParsesLaravelRules
         return $rules ? $this->getEnumFromRule($rules) : null;
     }
 
-    protected function getPropertyType(array $rules): string
+    protected function getPropertyType(Parameter $parameter): string
     {
+        $rules = $parameter->getRules();
+
+        if($parameter->hasSubParameters()) {
+            return Schema::OBJECT_TYPE;
+        }
         if (in_array('numeric', $rules)) {
-            return 'number';
+            return Schema::NUMBER_TYPE;
         }
 
         if (in_array('boolean', $rules)) {
-            return 'boolean';
+            return Schema::BOOLEAN_TYPE;
         }
 
-        if (in_array(Schema::ARRAY_TYPE, $rules)) {
-            return 'array';
+        if (in_array('array', $rules)) {
+            return Schema::ARRAY_TYPE;
         }
 
         if (in_array('integer', $rules) || in_array('int', $rules)) {
-            return 'integer';
+            return Schema::INTEGER_TYPE;
         }
 
         return Schema::STRING_TYPE;

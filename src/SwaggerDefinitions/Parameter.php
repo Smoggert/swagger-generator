@@ -153,4 +153,9 @@ class Parameter implements Arrayable
     {
         $this->sub_parameters[] = $parameter;
     }
+
+    public function hasSubParameters(): bool
+    {
+        return ! count($this->sub_parameters);
+    }
 }

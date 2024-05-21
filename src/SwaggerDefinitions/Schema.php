@@ -13,6 +13,7 @@ class Schema implements Arrayable
     public const OBJECT_TYPE = 'object';
     public const BOOLEAN_TYPE = 'boolean';
     public const INTEGER_TYPE = 'integer';
+    public const NUMBER_TYPE = 'number';
 
     use HasToArray;
 
