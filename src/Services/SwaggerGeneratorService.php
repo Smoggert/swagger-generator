@@ -242,7 +242,10 @@ class SwaggerGeneratorService
         foreach ($this->filtered_routes as $route) {
             $this->addPath($paths, $route['route'], $route['tags']);
         }
-        $swagger_docs['paths'] = ksort($paths);
+
+        ksort($paths);
+
+        $swagger_docs['paths'] = $paths;
     }
 
     public function getRouteName(Route $route): string
