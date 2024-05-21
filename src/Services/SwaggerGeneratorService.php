@@ -30,7 +30,8 @@ use Throwable;
 
 class SwaggerGeneratorService
 {
-    protected const CONFIG_FILE_NAME = 'swagger_gen';
+    protected const CONFIG_FILE_NAME = 'smoggert_swagger';
+    protected const OLD_CONFIG_FILE_NAME = 'swagger_gen';
 
     protected OutputInterface $output;
 
@@ -65,13 +66,13 @@ class SwaggerGeneratorService
     /**
      * @param  Router  $router
      *
-     * @throws Exception
+     * @throws SwaggerGeneratorException
      */
     public function __construct(Router $router)
     {
         $this->router = $router;
         $this->routes = $router->getRoutes();
-        $this->apis = Config::get(self::CONFIG_FILE_NAME.'.apis');
+        $this->apis = Config::get(self::OLD_CONFIG_FILE_NAME.'.apis') ?? Config::get(self::CONFIG_FILE_NAME.'.apis');
 
         $this->validateConfiguration();
     }
@@ -123,27 +124,25 @@ class SwaggerGeneratorService
     }
 
     /**
-     * @throws Exception
+     * @throws SwaggerGeneratorException
      */
     protected function validateConfiguration(): void
     {
         if (! empty($this->apis)) {
             foreach ($this->apis as &$api) {
                 if (! is_array($api)) {
-                    throw new Exception('Objects within the apis config should be arrays.');
+                    throw new SwaggerGeneratorException('Objects within the apis config should be arrays.');
                 }
 
                 if (! array_key_exists('default', $this->apis)) {
-                    throw new Exception('Please provide an api.');
+                    throw new SwaggerGeneratorException('Please provide an api.');
                 }
 
                 $api = array_merge($this->apis['default'], $api);
             }
-        } else {
-            $this->apis = [
-                Config::get(self::CONFIG_FILE_NAME),
-            ];
         }
+
+        throw new SwaggerGeneratorException("No apis configured.");
     }
 
     /**
