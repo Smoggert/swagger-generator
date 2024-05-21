@@ -3,12 +3,12 @@
 namespace Smoggert\SwaggerGenerator\Traits;
 
 use Illuminate\Validation\Rules\In;
-use Smoggert\SwaggerGenerator\SwaggerDefinitions\QueryParameter;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\Parameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Schema;
 
 trait ParsesLaravelRules
 {
-    protected function getEnumeratedValues(QueryParameter $parameter): ?array
+    protected function getEnumeratedValues(Parameter $parameter): ?array
     {
         $rules = $parameter->getSubParameter()?->getRules();
 

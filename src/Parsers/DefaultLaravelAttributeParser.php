@@ -4,7 +4,7 @@ namespace Smoggert\SwaggerGenerator\Parsers;
 
 use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
 use Smoggert\SwaggerGenerator\Interfaces\ParsesParameter;
-use Smoggert\SwaggerGenerator\SwaggerDefinitions\QueryParameter;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\Parameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Schema;
 use Smoggert\SwaggerGenerator\Traits\ParsesLaravelRules;
 
@@ -15,7 +15,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
     /**
      * @throws SwaggerGeneratorException
      */
-    public function __invoke(QueryParameter $query_parameter, string $context): QueryParameter
+    public function __invoke(Parameter $query_parameter, string $context): Parameter
     {
         $type = $this->getPropertyType($query_parameter->getRules());
 
@@ -35,7 +35,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
     /**
      * @throws SwaggerGeneratorException
      */
-    protected function handleArray(QueryParameter $query_parameter): void
+    protected function handleArray(Parameter $query_parameter): void
     {
         $this->setDefaultPhPArray($query_parameter);
 
@@ -53,7 +53,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
         );
     }
 
-    protected function handleString(QueryParameter $query_parameter): void
+    protected function handleString(Parameter $query_parameter): void
     {
         $schema = new Schema(Schema::STRING_TYPE);
 
@@ -66,7 +66,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
     /**
      * Due to OpenAPI standard of needing true/false as values for a boolean, we have to change the type into a tiny-int.
      */
-    protected function handleBoolean(QueryParameter $query_parameter): void
+    protected function handleBoolean(Parameter $query_parameter): void
     {
         $schema = new Schema(Schema::INTEGER_TYPE);
 
@@ -79,7 +79,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
     /**
      * Due to OpenAPI standard of needing true/false as values for a boolean, we have to change the type into a tiny-int.
      */
-    protected function handleInteger(QueryParameter $query_parameter): void
+    protected function handleInteger(Parameter $query_parameter): void
     {
         $schema = new Schema(Schema::INTEGER_TYPE);
 
@@ -89,7 +89,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
         $query_parameter->setSchema($schema);
     }
 
-    protected function setDefaultPhPArray(QueryParameter $parameter): void
+    protected function setDefaultPhPArray(Parameter $parameter): void
     {
         $parameter->setStyle('form');
         $parameter->setExplode(true);

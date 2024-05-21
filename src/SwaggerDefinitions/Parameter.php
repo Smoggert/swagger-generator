@@ -5,26 +5,29 @@ namespace Smoggert\SwaggerGenerator\SwaggerDefinitions;
 use Illuminate\Contracts\Support\Arrayable;
 use Smoggert\SwaggerGenerator\Traits\HasToArray;
 
-class QueryParameter implements Arrayable
+class Parameter implements Arrayable
 {
+    public const IN_QUERY = 'query';
+    public const IN_BODY = 'body';
+    public const IN_URL = 'query';
+
     use HasToArray {
         HasToArray::toArray as defaultToArray;
     }
 
-    public function __construct(protected string $parameter_name, protected array $rules)
+    public function __construct(protected string $parameter_name, protected array $rules, protected string $in)
     {
         $this->name = $parameter_name;
     }
 
     protected string $name;
-    protected string $in = 'query';
     protected ?string $description = null;
     protected ?string $style = null;
     protected ?bool $explode = null;
     protected ?bool $required = null;
     protected ?bool $nullable = null;
     protected ?Schema $schema = null;
-    protected ?QueryParameter $sub_parameter = null;
+    protected ?Parameter $sub_parameter = null;
 
     public function getExplode(): ?bool
     {
@@ -80,12 +83,12 @@ class QueryParameter implements Arrayable
         $this->name = $this->parameter_name.'[]';
     }
 
-    public function getSubParameter(): ?QueryParameter
+    public function getSubParameter(): ?Parameter
     {
         return $this->sub_parameter;
     }
 
-    public function setSubParameter(?QueryParameter $query_parameter): void
+    public function setSubParameter(?Parameter $query_parameter): void
     {
         $this->sub_parameter = $query_parameter;
     }

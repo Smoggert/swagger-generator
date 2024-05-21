@@ -24,7 +24,7 @@ use ReflectionType;
 use ReflectionUnionType;
 use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
 use Smoggert\SwaggerGenerator\Models\FakeModelForSwagger as Model;
-use Smoggert\SwaggerGenerator\SwaggerDefinitions\QueryParameter;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\Parameter;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
@@ -349,7 +349,7 @@ class SwaggerGeneratorService
                     $class = $this->getReflectionClass($parameter->getType());
                     if ($this->parameterClassIsFormRequest($class)) {
                         if ($this->isQueryRoute($route)) {
-                            $this->parseJsonBodyParametersAsQueryParameters($class, $query_parameters);
+                            $this->parseFormRequest($class, $query_parameters);
                         } else {
                             $this->parseJsonBodyParameters($class, $object);
                         }
@@ -407,33 +407,29 @@ class SwaggerGeneratorService
 
     protected function parseJsonBodyParameters(ReflectionClass $class, array &$object): void
     {
-        $class_name = $class->getName();
-        $requestParameters = $this->getRequestParameters($class);
-        if (! empty($requestParameters)) {
-            $body = [
-                'content' => [
-                    'application/json' => [
-                        'schema' => [
-                            '$ref' => $this->createRequestBodyComponent($requestParameters, $class_name),
-                        ],
+        $body = [
+            'content' => [
+                'application/json' => [
+                    'schema' => [
+                        '$ref' => $this->createRequestBodyComponent($class),
                     ],
                 ],
-            ];
-            $object['requestBody'] = $body;
-        }
+            ],
+        ];
+        $object['requestBody'] = $body;
     }
 
     /**
      * @throws ReflectionException
      * @throws SwaggerGeneratorException
      */
-    protected function parseJsonBodyParametersAsQueryParameters(ReflectionClass $class, array &$query_parameters): void
+    protected function parseFormRequest(ReflectionClass $class, array &$query_parameters): void
     {
         $context = $class->newInstance();
 
         $requestParameters = $context->rules();
 
-        $this->addQueryParameters($requestParameters, get_class($context), $query_parameters);
+        $this->addParameters($requestParameters, get_class($context), $query_parameters, Parameter::IN_BODY);
     }
 
     /**
@@ -463,14 +459,18 @@ class SwaggerGeneratorService
         return $schemes;
     }
 
-    protected function createRequestBodyComponent(array $parameters, string $requestName): string
+    protected function createRequestBodyComponent(ReflectionClass $class): string
     {
-        $requestName = $this->trimRequestPath($requestName);
+        $requestName = $this->trimRequestPath($class->getName());
+
         if (! isset($this->schemas[$requestName])) {
+            $properties = [];
+            $this->parseFormRequest($class, $properties);
+
             $component = [
                 'type' => 'object',
-                'required' => $this->getRequiredParameters($parameters),
-                'properties' => $this->getProperties($parameters),
+                'required' => $this->getRequiredParameters($this->getRequestParameters($class)),
+                'properties' => $properties,
             ];
 
             $this->schemas[$requestName] = $component;
@@ -570,24 +570,25 @@ class SwaggerGeneratorService
     /**
      * @throws SwaggerGeneratorException
      */
-    protected function addQueryParameters(array $properties, string $context, array &$component): void
+    protected function addParameters(array $properties, string $context, array &$component, string $in = Parameter::IN_QUERY): void
     {
         foreach ($properties as $property_name => $rules) {
             if (str_ends_with($property_name, '.*')) {
                 continue;
             }
 
-            $parameter = new QueryParameter(
+            $parameter = new Parameter(
                 parameter_name: $property_name,
                 rules: $this->transformRulesToArray($rules),
-
+                in: $in
             );
 
             if (isset($properties["$property_name.*"])) {
                 $parameter->setSubParameter(
-                    new QueryParameter(
+                    new Parameter(
                         parameter_name: "$property_name.*",
-                        rules: $this->transformRulesToArray($properties["$property_name.*"])
+                        rules: $this->transformRulesToArray($properties["$property_name.*"]),
+                        in: $in
                     ));
             }
 
@@ -656,7 +657,7 @@ class SwaggerGeneratorService
     /**
      * @throws SwaggerGeneratorException
      */
-    protected function parseQueryParameter(QueryParameter $query_parameter, string $context): array
+    protected function parseQueryParameter(Parameter $query_parameter, string $context): array
     {
         foreach ($this->parsers as $parser_class) {
             if (! class_exists($parser_class)) {
