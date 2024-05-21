@@ -13,15 +13,19 @@ class Schema implements Arrayable
     public const OBJECT_TYPE = 'object';
     public const BOOLEAN_TYPE = 'boolean';
     public const INTEGER_TYPE = 'integer';
+    public const NUMBER_TYPE = 'number';
 
     use HasToArray;
 
     protected ?Schema $items = null;
+    protected ?string $description = null;
     protected ?array $enum = null;
     protected ?int $minimum = null;
     protected ?int $maximum = null;
     protected ?int $minLength = null;
     protected ?int $maxLength = null;
+
+    protected ?PropertiesCollection $properties = null;
 
     public function __construct(protected string $type)
     {
@@ -49,15 +53,8 @@ class Schema implements Arrayable
         $this->items = $items;
     }
 
-    /**
-     * @throws SwaggerGeneratorException
-     */
     public function setEnum(?array $enum): void
     {
-        if ($this->type !== static::STRING_TYPE) {
-            throw new SwaggerGeneratorException("Try to set enum-values for wrong type [$this->type]");
-        }
-
         $this->enum = $enum;
     }
 
@@ -104,5 +101,25 @@ class Schema implements Arrayable
     public function setMaxLength(?int $maxLength): void
     {
         $this->maxLength = $maxLength;
+    }
+
+    public function getProperties(): PropertiesCollection
+    {
+        return $this->properties;
+    }
+
+    public function setProperties(PropertiesCollection $properties): void
+    {
+        $this->properties = $properties;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(?string $description): void
+    {
+        $this->description = $description;
     }
 }

@@ -20,17 +20,21 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionIntersectionType;
 use ReflectionMethod;
+use ReflectionParameter;
 use ReflectionType;
 use ReflectionUnionType;
 use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
 use Smoggert\SwaggerGenerator\Models\FakeModelForSwagger as Model;
-use Smoggert\SwaggerGenerator\SwaggerDefinitions\QueryParameter;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\Parameter;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\Schema;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
 class SwaggerGeneratorService
 {
-    protected const CONFIG_FILE_NAME = 'swagger_gen';
+    protected const CONFIG_FILE_NAME = 'smoggert_swagger';
+    protected const OLD_CONFIG_FILE_NAME = 'swagger_gen';
+    protected const PATH_CONTEXT = 'PATH_URL';
 
     protected OutputInterface $output;
 
@@ -65,13 +69,13 @@ class SwaggerGeneratorService
     /**
      * @param  Router  $router
      *
-     * @throws Exception
+     * @throws SwaggerGeneratorException
      */
     public function __construct(Router $router)
     {
         $this->router = $router;
         $this->routes = $router->getRoutes();
-        $this->apis = Config::get(self::CONFIG_FILE_NAME.'.apis');
+        $this->apis = Config::get(self::OLD_CONFIG_FILE_NAME.'.apis') ?? Config::get(self::CONFIG_FILE_NAME.'.apis');
 
         $this->validateConfiguration();
     }
@@ -115,7 +119,6 @@ class SwaggerGeneratorService
         $this->output_file_path = $configuration['output'] ?? null;
         $this->auth_middleware = $configuration['middleware'] ?? [];
         $this->servers = $configuration['servers'] ?? [];
-        $this->version = $configuration['openapi'] ?? '3.0.0';
         $this->allowed_routes = $configuration['allowed'] ?? [];
         $this->excluded_routes = $configuration['excluded'] ?? [];
         $this->info = $configuration['info'] ?? [];
@@ -123,26 +126,23 @@ class SwaggerGeneratorService
     }
 
     /**
-     * @throws Exception
+     * @throws SwaggerGeneratorException
      */
     protected function validateConfiguration(): void
     {
-        if (! empty($this->apis)) {
-            foreach ($this->apis as &$api) {
-                if (! is_array($api)) {
-                    throw new Exception('Objects within the apis config should be arrays.');
-                }
-
-                if (! array_key_exists('default', $this->apis)) {
-                    throw new Exception('Please provide an api.');
-                }
-
-                $api = array_merge($this->apis['default'], $api);
+        if (empty($this->apis)) {
+            throw new SwaggerGeneratorException('No apis configured.');
+        }
+        foreach ($this->apis as &$api) {
+            if (! is_array($api)) {
+                throw new SwaggerGeneratorException('Objects within the apis config should be arrays.');
             }
-        } else {
-            $this->apis = [
-                Config::get(self::CONFIG_FILE_NAME),
-            ];
+
+            if (! array_key_exists('default', $this->apis)) {
+                throw new SwaggerGeneratorException('Please provide an api.');
+            }
+
+            $api = array_merge($this->apis['default'], $api);
         }
     }
 
@@ -165,6 +165,8 @@ class SwaggerGeneratorService
     protected function addTags(&$swagger_file): void
     {
         $swagger_file['tags'] = [];
+
+        sort($this->tags);
 
         foreach ($this->tags as $tag) {
             $swagger_file['tags'][] = [
@@ -238,6 +240,9 @@ class SwaggerGeneratorService
         foreach ($this->filtered_routes as $route) {
             $this->addPath($paths, $route['route'], $route['tags']);
         }
+
+        ksort($paths);
+
         $swagger_docs['paths'] = $paths;
     }
 
@@ -337,32 +342,48 @@ class SwaggerGeneratorService
 
     /**
      * @throws ReflectionException
+     * @throws SwaggerGeneratorException
      */
     protected function setRouteParameters(Route $route, array &$object): void
     {
         $parameters = $this->getRouteParameters($route);
         if (! empty($parameters)) {
-            $url_parameters = [];
-            $query_parameters = [];
+            $route_parameters = [];
             foreach ($parameters as $parameter) {
-                if ($this->parameterHasType($parameter)) {
-                    $class = $this->getReflectionClass($parameter->getType());
-                    if ($this->parameterClassIsFormRequest($class)) {
-                        if ($this->isQueryRoute($route)) {
-                            $this->parseJsonBodyParametersAsQueryParameters($class, $query_parameters);
-                        } else {
-                            $this->parseJsonBodyParameters($class, $object);
-                        }
-                    } else {
-                        $this->parseUrlParameter($parameter, $url_parameters);
-                    }
-                } else {
-                    Log::warning($route->uri."| Couldn't parse ".$parameter.', parameter is not typed on ');
-                }
+                $this->handleRouteParameter($route, $parameter, $route_parameters, $object);
             }
-            $all_parameters = array_merge($url_parameters, $query_parameters);
-            $object['parameters'] = $all_parameters;
+
+            $object['parameters'] = $route_parameters;
         }
+    }
+
+    /**
+     * @throws ReflectionException
+     * @throws SwaggerGeneratorException
+     */
+    protected function handleRouteParameter(Route $route, ReflectionParameter $parameter, array &$route_parameters, array &$object): void
+    {
+        if (! $this->parameterHasType($parameter)) {
+            Log::warning($route->uri."| Couldn't parse ".$parameter.', parameter is not typed on ');
+
+            return;
+        }
+
+        $class = $this->getReflectionClass($parameter->getType());
+
+        if (! $this->parameterClassIsFormRequest($class)) {
+            $this->parseUrlParameter($parameter, $route_parameters);
+
+            return;
+        }
+
+        if ($this->isQueryRoute($route)) {
+            $this->parseFormRequest($class, $route_parameters, Parameter::IN_QUERY);
+
+            return;
+        }
+
+        $this->parseJsonBodyParameters($class, $object);
     }
 
     protected function isQueryRoute(Route $route): bool
@@ -370,7 +391,7 @@ class SwaggerGeneratorService
         return $this->getRouteVerb($route) === 'get';
     }
 
-    protected function parameterHasType(\ReflectionParameter $parameter): bool
+    protected function parameterHasType(ReflectionParameter $parameter): bool
     {
         return $parameter->hasType();
     }
@@ -395,45 +416,47 @@ class SwaggerGeneratorService
         return isset($class) && $class->isSubclassOf(ResourceCollection::class);
     }
 
-    protected function parseUrlParameter(\ReflectionParameter $parameter, array &$url_parameters): void
+    protected function parseUrlParameter(ReflectionParameter $reflection_parameter, array &$url_parameters): void
     {
-        $param = [
-            'name' => $parameter->getName(),
-            'in' => 'path',
-            'required' => ! $parameter->isOptional(),
-        ];
-        $url_parameters[] = $param;
+        $parameter = new Parameter(
+            $reflection_parameter->getName(),
+            [],
+            Parameter::IN_URL
+        );
+
+        $parameter = $this->parseParameter($parameter, self::PATH_CONTEXT);
+
+        $parameter->setRequired(! $reflection_parameter->isOptional());
+
+        $url_parameters[] = $parameter->toArray();
     }
 
     protected function parseJsonBodyParameters(ReflectionClass $class, array &$object): void
     {
-        $class_name = $class->getName();
-        $requestParameters = $this->getRequestParameters($class);
-        if (! empty($requestParameters)) {
-            $body = [
-                'content' => [
-                    'application/json' => [
-                        'schema' => [
-                            '$ref' => $this->createRequestBodyComponent($requestParameters, $class_name),
-                        ],
+        $body = [
+            'content' => [
+                'application/json' => [
+                    'schema' => [
+                        '$ref' => $this->createRequestBodyComponent($class),
                     ],
                 ],
-            ];
-            $object['requestBody'] = $body;
-        }
+            ],
+        ];
+
+        $object['requestBody'] = $body;
     }
 
     /**
      * @throws ReflectionException
      * @throws SwaggerGeneratorException
      */
-    protected function parseJsonBodyParametersAsQueryParameters(ReflectionClass $class, array &$query_parameters): void
+    protected function parseFormRequest(ReflectionClass $class, array &$query_parameters, string $parameter_location): void
     {
         $context = $class->newInstance();
 
         $requestParameters = $context->rules();
 
-        $this->addQueryParameters($requestParameters, get_class($context), $query_parameters);
+        $this->addParameters($requestParameters, get_class($context), $query_parameters, $parameter_location);
     }
 
     /**
@@ -463,14 +486,18 @@ class SwaggerGeneratorService
         return $schemes;
     }
 
-    protected function createRequestBodyComponent(array $parameters, string $requestName): string
+    protected function createRequestBodyComponent(ReflectionClass $class): string
     {
-        $requestName = $this->trimRequestPath($requestName);
+        $requestName = $this->trimRequestPath($class->getName());
+
         if (! isset($this->schemas[$requestName])) {
+            $properties = [];
+            $this->parseFormRequest($class, $properties, Parameter::IN_BODY);
+
             $component = [
-                'type' => 'object',
-                'required' => $this->getRequiredParameters($parameters),
-                'properties' => $this->getProperties($parameters),
+                'type' => Schema::OBJECT_TYPE,
+                'required' => $this->getRequiredParameters($this->getRequestParameters($class)),
+                'properties' => $properties,
             ];
 
             $this->schemas[$requestName] = $component;
@@ -570,29 +597,93 @@ class SwaggerGeneratorService
     /**
      * @throws SwaggerGeneratorException
      */
-    protected function addQueryParameters(array $properties, string $context, array &$component): void
+    protected function addParameters(array $properties, string $context, array &$component, string $in = Parameter::IN_QUERY): void
     {
-        foreach ($properties as $property_name => $rules) {
-            if (str_ends_with($property_name, '.*')) {
+        $fixed = $this->fixProperties($properties);
+
+        foreach ($fixed as $property_name => $rules) {
+            if (str_contains($property_name, '.')) {
                 continue;
             }
 
-            $parameter = new QueryParameter(
-                parameter_name: $property_name,
-                rules: $this->transformRulesToArray($rules),
+            $parameter = $this->createParameter($property_name, $this->transformRulesToArray($rules), $in, $fixed, $context);
 
-            );
+            if ($in === Parameter::IN_BODY) {
+                $component[$parameter->getName()] = $parameter->getSchema()->toArray();
+                continue;
+            }
 
-            if (isset($properties["$property_name.*"])) {
-                $parameter->setSubParameter(
-                    new QueryParameter(
-                        parameter_name: "$property_name.*",
-                        rules: $this->transformRulesToArray($properties["$property_name.*"])
+            $component[] = $parameter->toArray();
+        }
+    }
+
+    protected function fixProperties(array $properties): array
+    {
+        $fixed = [];
+        foreach ($properties as $key => $property) {
+            $fixed[$key] = $this->transformRulesToArray($property);
+        }
+
+        return $fixed;
+    }
+
+    /**
+     * @throws SwaggerGeneratorException
+     */
+    protected function createParameter(string $name, array $rules, string $in, array $properties, string $context): Parameter
+    {
+        $parameter_name = array_slice(explode('.', $name), -1)[0];
+
+        $parameter = new Parameter(
+            parameter_name: $parameter_name,
+            rules: $rules,
+            in: $in
+        );
+
+        $un_dotted_properties = Arr::undot($properties);
+        $sub_properties = Arr::get($un_dotted_properties, $name);
+
+        if (is_array($sub_properties) && count($sub_properties)) {
+            $array_rules = Arr::get($sub_properties, '*');
+            // ENUM HANDLING / ARRAY HANDLING
+            if (! empty($array_rules)) {
+                $parameter->setArrayType(
+                    $this->createParameter(
+                        name: "$name.*",
+                        rules: array_filter($array_rules, function ($key) {
+                            return is_numeric($key);
+                        }, ARRAY_FILTER_USE_KEY),
+                        in: $in,
+                        properties: $properties,
+                        context: $context
                     ));
             }
 
-            $component[] = $this->parseQueryParameter($parameter, $context);
+            // OBJECT HANDLING
+            unset($sub_properties['*']);
+
+            foreach ($sub_properties as $sub_property_name => $sub_property_rules) {
+                if (is_numeric($sub_property_name)) {
+                    continue;
+                }
+
+                $sub_parameter = $this->createParameter(
+                    name: "$name.*.$sub_property_name",
+                    rules: array_filter($sub_property_rules, function ($key) {
+                        return is_numeric($key);
+                    }, ARRAY_FILTER_USE_KEY),
+                    in: $in,
+                    properties: $properties,
+                    context: $context
+                );
+
+                $parameter->addSubParameter(
+                    $sub_parameter
+                );
+            }
         }
+
+        return $this->parseParameter($parameter, $context);
     }
 
     protected function hasObjects(array $array): bool
@@ -656,7 +747,7 @@ class SwaggerGeneratorService
     /**
      * @throws SwaggerGeneratorException
      */
-    protected function parseQueryParameter(QueryParameter $query_parameter, string $context): array
+    protected function parseParameter(Parameter $query_parameter, string $context): Parameter
     {
         foreach ($this->parsers as $parser_class) {
             if (! class_exists($parser_class)) {
@@ -668,7 +759,7 @@ class SwaggerGeneratorService
             $query_parameter = $parser($query_parameter, $context);
         }
 
-        return $query_parameter->toArray();
+        return $query_parameter;
     }
 
     protected function getEnumFromRule($rules): array
@@ -898,7 +989,7 @@ class SwaggerGeneratorService
 
     protected function addVersion(&$object): void
     {
-        $object['openapi'] = $this->version;
+        $object['openapi'] = '3.1.0';
     }
 
     protected function addInfo(&$object): void

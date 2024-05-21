@@ -5,26 +5,34 @@ namespace Smoggert\SwaggerGenerator\SwaggerDefinitions;
 use Illuminate\Contracts\Support\Arrayable;
 use Smoggert\SwaggerGenerator\Traits\HasToArray;
 
-class QueryParameter implements Arrayable
+class Parameter implements Arrayable
 {
+    public const IN_QUERY = 'query';
+    public const IN_BODY = 'body';
+    public const IN_URL = 'path';
+
     use HasToArray {
         HasToArray::toArray as defaultToArray;
     }
 
-    public function __construct(protected string $parameter_name, protected array $rules)
+    public function __construct(protected string $parameter_name, protected array $rules, protected string $in)
     {
         $this->name = $parameter_name;
     }
 
     protected string $name;
-    protected string $in = 'query';
     protected ?string $description = null;
     protected ?string $style = null;
     protected ?bool $explode = null;
-    protected ?bool $required = null;
+    protected null|bool|array $required = null;
     protected ?bool $nullable = null;
     protected ?Schema $schema = null;
-    protected ?QueryParameter $sub_parameter = null;
+    protected ?Parameter $array_type = null;
+
+    /**
+     * @var Parameter[]
+     */
+    protected array $sub_parameters = [];
 
     public function getExplode(): ?bool
     {
@@ -77,20 +85,22 @@ class QueryParameter implements Arrayable
 
     protected function setArrayName(): void
     {
-        $this->name = $this->parameter_name.'[]';
+        if ($this->in === self::IN_QUERY) {
+            $this->name = $this->parameter_name.'[]';
+        }
     }
 
-    public function getSubParameter(): ?QueryParameter
+    public function getArrayType(): ?Parameter
     {
-        return $this->sub_parameter;
+        return $this->array_type;
     }
 
-    public function setSubParameter(?QueryParameter $query_parameter): void
+    public function setArrayType(?Parameter $query_parameter): void
     {
-        $this->sub_parameter = $query_parameter;
+        $this->array_type = $query_parameter;
     }
 
-    public function setRequired(?bool $required): void
+    public function setRequired(bool|array|null $required): void
     {
         $this->required = $required;
     }
@@ -110,9 +120,10 @@ class QueryParameter implements Arrayable
         $array = $this->defaultToArray();
 
         unset(
-            $array['sub_parameter'],
+            $array['array_type'],
             $array['parameter_name'],
-            $array['rules']
+            $array['rules'],
+            $array['sub_parameters']
         );
 
         return $array;
@@ -126,5 +137,25 @@ class QueryParameter implements Arrayable
     public function setDescription(?string $description): void
     {
         $this->description = $description;
+    }
+
+    public function getSubParameters(): array
+    {
+        return $this->sub_parameters;
+    }
+
+    public function setSubParameters(array $sub_parameters): void
+    {
+        $this->sub_parameters = $sub_parameters;
+    }
+
+    public function addSubParameter(Parameter $parameter): void
+    {
+        $this->sub_parameters[] = $parameter;
+    }
+
+    public function hasSubParameters(): bool
+    {
+        return ! empty($this->sub_parameters);
     }
 }

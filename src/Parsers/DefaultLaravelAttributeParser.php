@@ -4,7 +4,8 @@ namespace Smoggert\SwaggerGenerator\Parsers;
 
 use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
 use Smoggert\SwaggerGenerator\Interfaces\ParsesParameter;
-use Smoggert\SwaggerGenerator\SwaggerDefinitions\QueryParameter;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\Parameter;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\PropertiesCollection;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Schema;
 use Smoggert\SwaggerGenerator\Traits\ParsesLaravelRules;
 
@@ -15,81 +16,100 @@ class DefaultLaravelAttributeParser implements ParsesParameter
     /**
      * @throws SwaggerGeneratorException
      */
-    public function __invoke(QueryParameter $query_parameter, string $context): QueryParameter
+    public function __invoke(Parameter $parameter, string $context): Parameter
     {
-        $type = $this->getPropertyType($query_parameter->getRules());
+        $type = $this->getPropertyType($parameter);
 
-        $query_parameter->setRequired($this->isRequestParameterRequired($query_parameter->getRules()));
-        $query_parameter->setNullable($this->isNullable($query_parameter->getRules()));
+        $parameter->setRequired($this->isRequestParameterRequired($parameter->getRules()));
+        $parameter->setNullable($this->isNullable($parameter->getRules()));
 
         match ($type) {
-            Schema::ARRAY_TYPE => $this->handleArray($query_parameter),
-            Schema::BOOLEAN_TYPE => $this->handleBoolean($query_parameter),
-            Schema::INTEGER_TYPE => $this->handleInteger($query_parameter),
-            default => $this->handleString($query_parameter)
+            Schema::ARRAY_TYPE => $this->handleArray($parameter),
+            Schema::BOOLEAN_TYPE => $this->handleBoolean($parameter),
+            Schema::INTEGER_TYPE => $this->handleInteger($parameter),
+            Schema::OBJECT_TYPE => $this->handleObject($parameter),
+            default => $this->handleString($parameter)
         };
 
-        return $query_parameter;
+        return $parameter;
     }
 
     /**
      * @throws SwaggerGeneratorException
      */
-    protected function handleArray(QueryParameter $query_parameter): void
+    protected function handleArray(Parameter $parameter): void
     {
-        $this->setDefaultPhPArray($query_parameter);
+        $this->setDefaultPhPArray($parameter);
 
         $schema = new Schema(Schema::ARRAY_TYPE);
-        $array_values = new Schema(Schema::STRING_TYPE);
 
-        $array_values->setEnum($this->getEnumeratedValues($query_parameter));
+        $array_values = $parameter->getArrayType()?->getSchema();
 
         $schema->setItems(
             $array_values
         );
 
-        $query_parameter->setSchema(
+        $parameter->setSchema(
             $schema
         );
     }
 
-    protected function handleString(QueryParameter $query_parameter): void
+    protected function handleString(Parameter $parameter): void
     {
         $schema = new Schema(Schema::STRING_TYPE);
 
-        $schema->setMinLength($this->findMinimum($query_parameter->getRules()));
-        $schema->setMaxLength($this->findMaximum($query_parameter->getRules()));
+        $schema->setMinLength($this->findMinimum($parameter->getRules()));
+        $schema->setMaxLength($this->findMaximum($parameter->getRules()));
+        $schema->setEnum($this->getEnumForParameter($parameter));
 
-        $query_parameter->setSchema($schema);
+        $parameter->setSchema($schema);
     }
 
     /**
      * Due to OpenAPI standard of needing true/false as values for a boolean, we have to change the type into a tiny-int.
      */
-    protected function handleBoolean(QueryParameter $query_parameter): void
+    protected function handleBoolean(Parameter $parameter): void
     {
         $schema = new Schema(Schema::INTEGER_TYPE);
 
         $schema->setMinimum(0);
         $schema->setMaximum(1);
 
-        $query_parameter->setSchema($schema);
+        $parameter->setSchema($schema);
     }
 
     /**
      * Due to OpenAPI standard of needing true/false as values for a boolean, we have to change the type into a tiny-int.
      */
-    protected function handleInteger(QueryParameter $query_parameter): void
+    protected function handleInteger(Parameter $parameter): void
     {
         $schema = new Schema(Schema::INTEGER_TYPE);
 
-        $schema->setMinimum($this->findMinimum($query_parameter->getRules()));
-        $schema->setMaximum($this->findMaximum($query_parameter->getRules()));
+        $schema->setMinimum($this->findMinimum($parameter->getRules()));
+        $schema->setMaximum($this->findMaximum($parameter->getRules()));
 
-        $query_parameter->setSchema($schema);
+        $parameter->setSchema($schema);
     }
 
-    protected function setDefaultPhPArray(QueryParameter $parameter): void
+    protected function handleObject(Parameter $parameter): void
+    {
+        $schema = new Schema(Schema::OBJECT_TYPE);
+
+        $properties = new PropertiesCollection();
+
+        foreach ($parameter->getSubParameters() as $sub_parameter) {
+            $sub_parameter->getSchema()->setDescription($sub_parameter->getDescription());
+            $properties->add(
+                $sub_parameter->getName(), $sub_parameter->getSchema()
+            );
+        }
+
+        $schema->setProperties($properties);
+
+        $parameter->setSchema($schema);
+    }
+
+    protected function setDefaultPhPArray(Parameter $parameter): void
     {
         $parameter->setStyle('form');
         $parameter->setExplode(true);

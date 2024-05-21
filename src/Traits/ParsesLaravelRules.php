@@ -3,52 +3,14 @@
 namespace Smoggert\SwaggerGenerator\Traits;
 
 use Illuminate\Validation\Rules\In;
-use Smoggert\SwaggerGenerator\SwaggerDefinitions\QueryParameter;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\Parameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Schema;
 
 trait ParsesLaravelRules
 {
-    protected function getEnumeratedValues(QueryParameter $parameter): ?array
+    protected function getEnumForParameter(Parameter $parameter): ?array
     {
-        $rules = $parameter->getSubParameter()?->getRules();
-
-        return $rules ? $this->getEnumFromRule($rules) : null;
-    }
-
-    protected function getPropertyType(array $rules): string
-    {
-        if (in_array('numeric', $rules)) {
-            return 'number';
-        }
-
-        if (in_array('boolean', $rules)) {
-            return 'boolean';
-        }
-
-        if (in_array(Schema::ARRAY_TYPE, $rules)) {
-            return 'array';
-        }
-
-        if (in_array('integer', $rules) || in_array('int', $rules)) {
-            return 'integer';
-        }
-
-        return Schema::STRING_TYPE;
-    }
-
-    protected function isNullable(array $rules): bool
-    {
-        return in_array('nullable', $rules);
-    }
-
-    protected function isRequestParameterRequired(array $rules): bool
-    {
-        return in_array('required', $rules);
-    }
-
-    protected function getEnumFromRule(array $rules): ?array
-    {
-        foreach ($rules as $rule) {
+        foreach ($parameter->getRules() as $rule) {
             if ($rule instanceof In) {
                 $rule = (string) $rule;
             }
@@ -63,6 +25,43 @@ trait ParsesLaravelRules
         }
 
         return null;
+    }
+
+    protected function getPropertyType(Parameter $parameter): string
+    {
+        $rules = $parameter->getRules();
+
+        if ($parameter->hasSubParameters()) {
+            return Schema::OBJECT_TYPE;
+        }
+
+        if (in_array('numeric', $rules)) {
+            return Schema::NUMBER_TYPE;
+        }
+
+        if (in_array('boolean', $rules)) {
+            return Schema::BOOLEAN_TYPE;
+        }
+
+        if (in_array('array', $rules)) {
+            return Schema::ARRAY_TYPE;
+        }
+
+        if (in_array('integer', $rules) || in_array('int', $rules)) {
+            return Schema::INTEGER_TYPE;
+        }
+
+        return Schema::STRING_TYPE;
+    }
+
+    protected function isNullable(array $rules): bool
+    {
+        return in_array('nullable', $rules);
+    }
+
+    protected function isRequestParameterRequired(array $rules): bool
+    {
+        return in_array('required', $rules);
     }
 
     protected function findMinimum(array $rules): ?int
