@@ -18,6 +18,7 @@ class Schema implements Arrayable
     use HasToArray;
 
     protected ?Schema $items = null;
+    protected ?string $description = null;
     protected ?array $enum = null;
     protected ?int $minimum = null;
     protected ?int $maximum = null;
@@ -110,5 +111,15 @@ class Schema implements Arrayable
     public function setProperties(PropertiesCollection $properties): void
     {
         $this->properties = $properties;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function setDescription(?string $description): void
+    {
+        $this->description = $description;
     }
 }
