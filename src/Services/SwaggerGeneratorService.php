@@ -129,14 +129,14 @@ class SwaggerGeneratorService
     protected function validateConfiguration(): void
     {
         if (empty($this->apis)) {
-            throw new SwaggerGeneratorException("No apis configured.");
+            throw new SwaggerGeneratorException('No apis configured.');
         }
         foreach ($this->apis as &$api) {
-            if (!is_array($api)) {
+            if (! is_array($api)) {
                 throw new SwaggerGeneratorException('Objects within the apis config should be arrays.');
             }
 
-            if (!array_key_exists('default', $this->apis)) {
+            if (! array_key_exists('default', $this->apis)) {
                 throw new SwaggerGeneratorException('Please provide an api.');
             }
 
@@ -577,9 +577,9 @@ class SwaggerGeneratorService
 
             $parameter = $this->createParameter($property_name, $this->transformRulesToArray($rules), $in, $properties, $context);
 
-            $parsed =  $this->parseParameter($parameter, $context);
+            $parsed = $this->parseParameter($parameter, $context);
 
-            if($in === Parameter::IN_BODY) {
+            if ($in === Parameter::IN_BODY) {
                 $component[$parameter->getName()] = $parsed->getSchema()->toArray();
                 continue;
             }
@@ -614,11 +614,13 @@ class SwaggerGeneratorService
         // OBJECT HANDLING
         $un_dotted_properties = Arr::undot($properties);
 
-        if(Arr::get($un_dotted_properties, $name. ".*")) {
+        if (Arr::get($un_dotted_properties, $name.'.*')) {
             foreach ($un_dotted_properties as $sub_property_name => $sub_property_rules) {
                 $sub_parameter = $this->createParameter(
                     name: "$name.*.$sub_property_name",
-                    rules: array_filter($sub_property_rules, function($key) {return is_numeric($key);}, ARRAY_FILTER_USE_KEY),
+                    rules: array_filter($sub_property_rules, function ($key) {
+                        return is_numeric($key);
+                    }, ARRAY_FILTER_USE_KEY),
                     in: $in,
                     properties: $properties,
                     context: $context

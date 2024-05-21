@@ -35,8 +35,8 @@ class DefaultLaravelAttributeParser implements ParsesParameter
 
     protected function isObjectType()
     {
-
     }
+
     /**
      * @throws SwaggerGeneratorException
      */
