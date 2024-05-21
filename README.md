@@ -10,7 +10,7 @@ It is currently in pre-alpha or something among those lines..
 You can place this in require-dev and just run the command during deploy/dev. No need to have this package on production.
 ```json
     "require-dev": {
-        "smoggert/swagger-generator": "^1.1.4"
+        "smoggert/swagger-generator": "^3.0.0"
     }
 ```
 ## !! Prerequisits !!
