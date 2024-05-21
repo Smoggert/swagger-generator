@@ -11,6 +11,7 @@ use Smoggert\SwaggerGenerator\Traits\ParsesLaravelRules;
 class DefaultLaravelAttributeParser implements ParsesParameter
 {
     use ParsesLaravelRules;
+
     /**
      * @throws SwaggerGeneratorException
      */
