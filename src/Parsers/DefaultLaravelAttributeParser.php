@@ -45,8 +45,6 @@ class DefaultLaravelAttributeParser implements ParsesParameter
 
         $array_values = $parameter->getArrayType()?->getSchema();
 
-        $array_values?->setEnum($this->getEnumeratedValues($parameter));
-
         $schema->setItems(
             $array_values
         );
@@ -62,6 +60,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
 
         $schema->setMinLength($this->findMinimum($parameter->getRules()));
         $schema->setMaxLength($this->findMaximum($parameter->getRules()));
+        $schema->setEnum($this->getEnumeratedValues($parameter));
 
         $parameter->setSchema($schema);
     }
