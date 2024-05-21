@@ -26,7 +26,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
             Schema::ARRAY_TYPE => $this->handleArray($query_parameter),
             Schema::BOOLEAN_TYPE => $this->handleBoolean($query_parameter),
             Schema::INTEGER_TYPE => $this->handleInteger($query_parameter),
-            Schema::OBJECT_TYPE => $type->handleObject($query_parameter),
+            Schema::OBJECT_TYPE => $this->handleObject($query_parameter),
             default => $this->handleString($query_parameter)
         };
 
