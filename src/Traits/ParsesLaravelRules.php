@@ -70,7 +70,7 @@ trait ParsesLaravelRules
         $regex = '/min:([0-9]*)/';
 
         if($matches = preg_grep($regex, $rules)) {
-            return preg_replace($regex,'$1', $matches[0]);
+            return preg_replace($regex,'$1', array_values($matches)[0]);
         }
 
         return null;
@@ -81,7 +81,7 @@ trait ParsesLaravelRules
         $regex = '/max:([0-9]*)/';
 
         if($matches = preg_grep($regex, $rules)) {
-            return preg_replace($regex,'$1', $matches[0]);
+            return preg_replace($regex,'$1', array_values($matches)[0]);
         }
 
         return null;
