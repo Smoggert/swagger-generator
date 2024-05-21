@@ -576,7 +576,7 @@ class SwaggerGeneratorService
                 continue;
             }
 
-            $parameter = $this->createParameter($property_name, $rules, $in, $properties, $context);
+            $parameter = $this->createParameter($property_name, $this->transformRulesToArray($rules), $in, $properties, $context);
 
             $parsed =  $this->parseParameter($parameter, $context);
 
@@ -589,14 +589,18 @@ class SwaggerGeneratorService
         }
     }
 
+    /**
+     * @throws SwaggerGeneratorException
+     */
     protected function createParameter(string $name, array $rules, string $in, array $other_properties, string $context): Parameter
     {
         $parameter = new Parameter(
             parameter_name: $name,
-            rules: $this->transformRulesToArray($rules),
+            rules: $rules,
             in: $in
         );
 
+        // ENUM HANDLING / ARRAY HANDLING
         if (isset($other_properties["$name.*"])) {
             $parameter->setArrayType(
                 new Parameter(
@@ -606,6 +610,7 @@ class SwaggerGeneratorService
                 ));
         }
 
+        // OBJECT HANDLING
         $un_dotted_properties = Arr::undot($other_properties);
 
         if(isset($un_dotted_properties['*'])) {
@@ -624,15 +629,6 @@ class SwaggerGeneratorService
                     $sub_parameter
                 );
             }
-        }
-
-        if (isset($other_properties["$name.*"])) {
-            $parameter->setArrayType(
-                new Parameter(
-                    parameter_name: "$name.*",
-                    rules: $this->transformRulesToArray($other_properties["$name.*"]),
-                    in: $in
-                ));
         }
 
         return $parameter;
