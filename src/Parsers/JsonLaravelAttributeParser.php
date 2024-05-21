@@ -12,15 +12,16 @@ use Smoggert\SwaggerGenerator\Traits\ParsesLaravelRules;
 class JsonLaravelAttributeParser implements ParsesParameter
 {
     use ParsesLaravelRules;
+
     /**
      * @throws SwaggerGeneratorException
      */
     public function __invoke(Parameter $parameter, string $context): Parameter
     {
-        if(! $parameter instanceof JsonParameter) {
-            return $parameter;    
+        if (! $parameter instanceof JsonParameter) {
+            return $parameter;
         }
-        
+
         $rules = $parameter->getRules();
 
         $parameter->setNullable($this->isNullable($rules));
@@ -63,7 +64,6 @@ class JsonLaravelAttributeParser implements ParsesParameter
             $this->addProperty('items', $property_rule['*'], $property);
         }
 
-
         $component[$property_name] = $property;
     }
 
@@ -72,15 +72,16 @@ class JsonLaravelAttributeParser implements ParsesParameter
      */
     protected function handleArray(Parameter $parameter): void
     {
-        if($parameter->hasSubParameters()) {
+        if ($parameter->hasSubParameters()) {
             $schema = new Schema(Schema::OBJECT_TYPE);
             $array_values = new Schema(Schema::STRING_TYPE);
 
             $array_values->setEnum($this->getEnumeratedValues($parameter));
-            foreach ($parameter->getSubParameters() as &$sub_parameter)
-            $schema->setItems(
-                $array_values
-            );
+            foreach ($parameter->getSubParameters() as &$sub_parameter) {
+                $schema->setItems(
+                    $array_values
+                );
+            }
 
             $parameter->setSchema(
                 $schema

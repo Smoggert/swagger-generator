@@ -16,7 +16,6 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\In;
-use Mockery\Generator\Parameter;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionIntersectionType;
@@ -571,9 +570,10 @@ class SwaggerGeneratorService
     }
 
     /**
-     * @param array $properties
-     * @param bool $is_resource
+     * @param  array  $properties
+     * @param  bool  $is_resource
      * @return array
+     *
      * @throws SwaggerGeneratorException
      */
     protected function getProperties(array $properties, bool $is_resource = false): array
@@ -585,7 +585,7 @@ class SwaggerGeneratorService
                 continue;
             }
 
-            if(is_numeric($property_name)) {
+            if (is_numeric($property_name)) {
                 continue;
             }
 
@@ -594,7 +594,7 @@ class SwaggerGeneratorService
                 rules: $this->transformRulesToArray($sub_properties_and_rules),
             );
 
-            $parsed_properties[] = $this->parseJsonParameter($parameter, "")->toArray();
+            $parsed_properties[] = $this->parseJsonParameter($parameter, '')->toArray();
         }
 
         return $parsed_properties;
@@ -616,12 +616,12 @@ class SwaggerGeneratorService
 
             );
 
-            if(isset($properties["$property_name.*"])) {
+            if (isset($properties["$property_name.*"])) {
                 $parameter->setArrayType(
                     new QueryParameter(
                         parameter_name: "$property_name.*",
                         rules: $this->transformRulesToArray($properties["$property_name.*"])
-                ));
+                    ));
             }
 
             $component[] = $this->parseQueryParameter($parameter, $context);
