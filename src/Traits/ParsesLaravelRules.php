@@ -19,7 +19,7 @@ trait ParsesLaravelRules
     {
         $rules = $parameter->getRules();
 
-        if($parameter->hasSubParameters()) {
+        if ($parameter->hasSubParameters()) {
             return Schema::OBJECT_TYPE;
         }
 
