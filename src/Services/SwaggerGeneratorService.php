@@ -592,34 +592,36 @@ class SwaggerGeneratorService
     /**
      * @throws SwaggerGeneratorException
      */
-    protected function createParameter(string $name, array $rules, string $in, array $other_properties, string $context): Parameter
+    protected function createParameter(string $name, array $rules, string $in, array $properties, string $context): Parameter
     {
+        $parameter_name = array_slice(explode('.', $name), -1)[0];
+
         $parameter = new Parameter(
-            parameter_name: $name,
+            parameter_name: $parameter_name,
             rules: $rules,
             in: $in
         );
 
         // ENUM HANDLING / ARRAY HANDLING
-        if (isset($other_properties["$name.*"])) {
+        if (isset($properties["$name.*"])) {
             $parameter->setArrayType(
                 new Parameter(
                     parameter_name: "$name.*",
-                    rules: $this->transformRulesToArray($other_properties["$name.*"]),
+                    rules: $this->transformRulesToArray($properties["$name.*"]),
                     in: $in
                 ));
         }
 
         // OBJECT HANDLING
-        $un_dotted_properties = Arr::undot($other_properties);
+        $un_dotted_properties = Arr::undot($properties);
 
         if(isset($un_dotted_properties['*'])) {
             foreach ($un_dotted_properties as $sub_property_name => $sub_property_rules) {
                 $sub_parameter = $this->createParameter(
-                    name: $sub_property_name,
+                    name: "$name.*.$sub_property_name",
                     rules: array_filter($sub_property_rules, function($key) {return is_numeric($key);}, ARRAY_FILTER_USE_KEY),
                     in: $in,
-                    other_properties: $other_properties,
+                    properties: $properties,
                     context: $context
                 );
 
