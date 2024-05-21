@@ -2,14 +2,15 @@
 
 namespace Smoggert\SwaggerGenerator\Parsers;
 
-use Illuminate\Validation\Rules\In;
 use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
 use Smoggert\SwaggerGenerator\Interfaces\ParsesParameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\QueryParameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Schema;
+use Smoggert\SwaggerGenerator\Traits\ParsesLaravelRules;
 
 class DefaultLaravelAttributeParser implements ParsesParameter
 {
+    use ParsesLaravelRules;
     /**
      * @throws SwaggerGeneratorException
      */
@@ -60,62 +61,5 @@ class DefaultLaravelAttributeParser implements ParsesParameter
     {
         $parameter->setStyle('form');
         $parameter->setExplode(true);
-    }
-
-    protected function getEnumeratedValues(QueryParameter $parameter): ?array
-    {
-        $rules = $parameter->getSubParameter()?->getRules();
-
-        return $rules ? $this->getEnumFromRule($rules) : null;
-    }
-
-    protected function getPropertyType(array $rules): string
-    {
-        if (in_array('numeric', $rules)) {
-            return 'number';
-        }
-
-        if (in_array('boolean', $rules)) {
-            return 'boolean';
-        }
-
-        if (in_array(Schema::ARRAY_TYPE, $rules)) {
-            return 'array';
-        }
-
-        if (in_array('integer', $rules) || in_array('int', $rules)) {
-            return 'integer';
-        }
-
-        return Schema::STRING_TYPE;
-    }
-
-    protected function isNullable(array $rules): bool
-    {
-        return in_array('nullable', $rules);
-    }
-
-    protected function isRequestParameterRequired(array $rules): bool
-    {
-        return in_array('required', $rules);
-    }
-
-    protected function getEnumFromRule(array $rules): ?array
-    {
-        foreach ($rules as $rule) {
-            if ($rule instanceof In) {
-                $rule = (string) $rule;
-            }
-
-            $enum_rule = is_string($rule) && str_starts_with($rule, 'in:');
-
-            if (! $enum_rule) {
-                continue;
-            }
-
-            return explode(',', str_replace(['in:', '"'], '', $rule));
-        }
-
-        return null;
     }
 }
