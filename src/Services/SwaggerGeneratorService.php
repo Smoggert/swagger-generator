@@ -592,7 +592,13 @@ class SwaggerGeneratorService
             }
 
             $parsed =  $this->parseParameter($parameter, $context);
-            $component[$parameter->getName()] = $parsed->getSchema()->toArray();
+
+            if($in === Parameter::IN_BODY) {
+                $component[$parameter->getName()] = $parsed->getSchema()->toArray();
+                return;
+            }
+
+            $component[] = $parsed->toArray();
         }
     }
 
