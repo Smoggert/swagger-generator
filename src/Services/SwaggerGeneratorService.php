@@ -243,7 +243,7 @@ class SwaggerGeneratorService
             $this->addPath($paths, $route['route'], $route['tags']);
         }
 
-        usort($paths, fn($a, $b) => strcasecmp($a['summary'], $b['summary']));
+        ksort($paths);
 
         $swagger_docs['paths'] = $paths;
     }
