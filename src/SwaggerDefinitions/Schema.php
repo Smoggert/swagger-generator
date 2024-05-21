@@ -20,6 +20,8 @@ class Schema implements Arrayable
     protected ?array $enum = null;
     protected ?int $minimum = null;
     protected ?int $maximum = null;
+    protected ?int $minLength = null;
+    protected ?int $maxLength = null;
 
     public function __construct(protected string $type)
     {
@@ -82,5 +84,25 @@ class Schema implements Arrayable
     public function setMaximum(?int $maximum): void
     {
         $this->maximum = $maximum;
+    }
+
+    public function getMinLength(): ?int
+    {
+        return $this->minLength;
+    }
+
+    public function setMinLength(?int $minLength): void
+    {
+        $this->minLength = $minLength;
+    }
+
+    public function getMaxLength(): ?int
+    {
+        return $this->maxLength;
+    }
+
+    public function setMaxLength(?int $maxLength): void
+    {
+        $this->maxLength = $maxLength;
     }
 }

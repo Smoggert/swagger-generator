@@ -57,6 +57,9 @@ class DefaultLaravelAttributeParser implements ParsesParameter
     {
         $schema = new Schema(Schema::STRING_TYPE);
 
+        $schema->setMinLength($this->findMinimum($query_parameter->getRules()));
+        $schema->setMaxLength($this->findMaximum($query_parameter->getRules()));
+
         $query_parameter->setSchema($schema);
     }
 
