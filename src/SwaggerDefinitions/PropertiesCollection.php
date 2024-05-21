@@ -3,7 +3,6 @@
 namespace Smoggert\SwaggerGenerator\SwaggerDefinitions;
 
 use Illuminate\Contracts\Support\Arrayable;
-use Smoggert\SwaggerGenerator\Traits\HasToArray;
 
 class PropertiesCollection implements Arrayable
 {
@@ -19,7 +18,6 @@ class PropertiesCollection implements Arrayable
         $properties = [];
 
         foreach ($this->properties as $name => $property) {
-
             $properties[$name] = $property instanceof Arrayable ? $property->toArray() : $property;
         }
 
