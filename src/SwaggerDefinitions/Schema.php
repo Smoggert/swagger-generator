@@ -10,11 +10,16 @@ class Schema implements Arrayable
 {
     public const ARRAY_TYPE = 'array';
     public const STRING_TYPE = 'string';
+    public const OBJECT_TYPE = 'object';
+    public const BOOLEAN_TYPE = 'boolean';
+    public const INTEGER_TYPE = 'integer';
 
     use HasToArray;
 
     protected ?Schema $items = null;
     protected ?array $enum = null;
+    protected ?int $minimum = null;
+    protected ?int $maximum = null;
 
     public function __construct(protected string $type)
     {
@@ -57,5 +62,25 @@ class Schema implements Arrayable
     public function getType(): string
     {
         return $this->type;
+    }
+
+    public function getMinimum(): ?int
+    {
+        return $this->minimum;
+    }
+
+    public function setMinimum(?int $minimum): void
+    {
+        $this->minimum = $minimum;
+    }
+
+    public function getMaximum(): ?int
+    {
+        return $this->maximum;
+    }
+
+    public function setMaximum(?int $maximum): void
+    {
+        $this->maximum = $maximum;
     }
 }

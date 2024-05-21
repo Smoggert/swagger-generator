@@ -64,4 +64,26 @@ trait ParsesLaravelRules
 
         return null;
     }
+
+    protected function findMinimum(array $rules): ?int
+    {
+        $regex = '/min:([0-9]*)/';
+
+        if($matches = preg_grep($regex, $rules)) {
+            return preg_replace($regex,'$1', $matches[0]);
+        }
+
+        return null;
+    }
+
+    protected function findMaximum(array $rules): ?int
+    {
+        $regex = '/max:([0-9]*)/';
+
+        if($matches = preg_grep($regex, $rules)) {
+            return preg_replace($regex,'$1', $matches[0]);
+        }
+
+        return null;
+    }
 }

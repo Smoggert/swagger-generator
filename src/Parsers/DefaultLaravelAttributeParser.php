@@ -7,6 +7,7 @@ use Smoggert\SwaggerGenerator\Interfaces\ParsesParameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\QueryParameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Schema;
 use Smoggert\SwaggerGenerator\Traits\ParsesLaravelRules;
+use function Aws\default_user_agent;
 
 class DefaultLaravelAttributeParser implements ParsesParameter
 {
@@ -24,7 +25,9 @@ class DefaultLaravelAttributeParser implements ParsesParameter
 
         match ($type) {
             Schema::ARRAY_TYPE => $this->handleArray($query_parameter),
-            Schema::STRING_TYPE => $this->handleString($query_parameter)
+            Schema::BOOLEAN_TYPE => $this->handleBoolean($query_parameter),
+            Schema::INTEGER_TYPE => $this->handleInteger($query_parameter),
+            default => $this->handleString($query_parameter)
         };
 
         return $query_parameter;
@@ -54,6 +57,32 @@ class DefaultLaravelAttributeParser implements ParsesParameter
     protected function handleString(QueryParameter $query_parameter): void
     {
         $schema = new Schema(Schema::STRING_TYPE);
+
+        $query_parameter->setSchema($schema);
+    }
+
+    /**
+     * Due to OpenAPI standard of needing true/false as values for a boolean, we have to change the type into a tiny-int.
+     */
+    protected function handleBoolean(QueryParameter $query_parameter): void
+    {
+        $schema = new Schema(Schema::INTEGER_TYPE);
+
+        $schema->setMinimum(0);
+        $schema->setMaximum(1);
+
+        $query_parameter->setSchema($schema);
+    }
+
+    /**
+     * Due to OpenAPI standard of needing true/false as values for a boolean, we have to change the type into a tiny-int.
+     */
+    protected function handleInteger(QueryParameter $query_parameter): void
+    {
+        $schema = new Schema(Schema::INTEGER_TYPE);
+
+        $schema->setMinimum($this->findMinimum($query_parameter->getRules()));
+        $schema->setMaximum($this->findMaximum($query_parameter->getRules()));
 
         $query_parameter->setSchema($schema);
     }
