@@ -117,7 +117,6 @@ class SwaggerGeneratorService
         $this->output_file_path = $configuration['output'] ?? null;
         $this->auth_middleware = $configuration['middleware'] ?? [];
         $this->servers = $configuration['servers'] ?? [];
-        $this->version = $configuration['openapi'] ?? '3.0.0';
         $this->allowed_routes = $configuration['allowed'] ?? [];
         $this->excluded_routes = $configuration['excluded'] ?? [];
         $this->info = $configuration['info'] ?? [];
@@ -615,7 +614,7 @@ class SwaggerGeneratorService
         // OBJECT HANDLING
         $un_dotted_properties = Arr::undot($properties);
 
-        if(isset($un_dotted_properties['*'])) {
+        if(Arr::get($un_dotted_properties, $name. ".*")) {
             foreach ($un_dotted_properties as $sub_property_name => $sub_property_rules) {
                 $sub_parameter = $this->createParameter(
                     name: "$name.*.$sub_property_name",
@@ -939,7 +938,7 @@ class SwaggerGeneratorService
 
     protected function addVersion(&$object): void
     {
-        $object['openapi'] = $this->version;
+        $object['openapi'] = '3.1.0';
     }
 
     protected function addInfo(&$object): void
