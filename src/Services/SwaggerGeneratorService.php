@@ -131,14 +131,14 @@ class SwaggerGeneratorService
     protected function validateConfiguration(): void
     {
         if (empty($this->apis)) {
-            throw new SwaggerGeneratorException("No apis configured.");
+            throw new SwaggerGeneratorException('No apis configured.');
         }
         foreach ($this->apis as &$api) {
-            if (!is_array($api)) {
+            if (! is_array($api)) {
                 throw new SwaggerGeneratorException('Objects within the apis config should be arrays.');
             }
 
-            if (!array_key_exists('default', $this->apis)) {
+            if (! array_key_exists('default', $this->apis)) {
                 throw new SwaggerGeneratorException('Please provide an api.');
             }
 
@@ -173,8 +173,6 @@ class SwaggerGeneratorService
                 'name' => $tag,
             ];
         }
-
-
     }
 
     protected function filterRoutes(): void
@@ -243,7 +241,7 @@ class SwaggerGeneratorService
             $this->addPath($paths, $route['route'], $route['tags']);
         }
 
-        usort($paths, fn($a, $b) => strcasecmp($a['summary'], $b['summary']));
+        usort($paths, fn ($a, $b) => strcasecmp($a['summary'], $b['summary']));
 
         $swagger_docs['paths'] = $paths;
     }
@@ -367,6 +365,7 @@ class SwaggerGeneratorService
     {
         if (! $this->parameterHasType($parameter)) {
             Log::warning($route->uri."| Couldn't parse ".$parameter.', parameter is not typed on ');
+
             return;
         }
 
@@ -374,11 +373,13 @@ class SwaggerGeneratorService
 
         if (! $this->parameterClassIsFormRequest($class)) {
             $this->parseUrlParameter($parameter, $route_parameters);
+
             return;
         }
 
         if ($this->isQueryRoute($route)) {
             $this->parseFormRequest($class, $route_parameters, Parameter::IN_QUERY);
+
             return;
         }
 
@@ -607,7 +608,7 @@ class SwaggerGeneratorService
 
             $parameter = $this->createParameter($property_name, $this->transformRulesToArray($rules), $in, $fixed, $context);
 
-            if($in === Parameter::IN_BODY) {
+            if ($in === Parameter::IN_BODY) {
                 $component[$parameter->getName()] = $parameter->getSchema()->toArray();
                 continue;
             }
@@ -620,7 +621,7 @@ class SwaggerGeneratorService
     {
         $fixed = [];
         foreach ($properties as $key => $property) {
-            $fixed[$key] =  $this->transformRulesToArray($property);
+            $fixed[$key] = $this->transformRulesToArray($property);
         }
 
         return $fixed;
@@ -642,14 +643,16 @@ class SwaggerGeneratorService
         $un_dotted_properties = Arr::undot($properties);
         $sub_properties = Arr::get($un_dotted_properties, $name);
 
-        if(is_array($sub_properties) && count($sub_properties)) {
+        if (is_array($sub_properties) && count($sub_properties)) {
             $array_rules = Arr::get($sub_properties, '*');
             // ENUM HANDLING / ARRAY HANDLING
             if (! empty($array_rules)) {
                 $parameter->setArrayType(
                     $this->createParameter(
                         name: "$name.*",
-                        rules: array_filter($array_rules, function($key) {return is_numeric($key);}, ARRAY_FILTER_USE_KEY),
+                        rules: array_filter($array_rules, function ($key) {
+                            return is_numeric($key);
+                        }, ARRAY_FILTER_USE_KEY),
                         in: $in,
                         properties: $properties,
                         context: $context
@@ -660,13 +663,15 @@ class SwaggerGeneratorService
             unset($sub_properties['*']);
 
             foreach ($sub_properties as $sub_property_name => $sub_property_rules) {
-                if(is_numeric($sub_property_name)) {
+                if (is_numeric($sub_property_name)) {
                     continue;
                 }
 
                 $sub_parameter = $this->createParameter(
                     name: "$name.*.$sub_property_name",
-                    rules: array_filter($sub_property_rules, function($key) {return is_numeric($key);}, ARRAY_FILTER_USE_KEY),
+                    rules: array_filter($sub_property_rules, function ($key) {
+                        return is_numeric($key);
+                    }, ARRAY_FILTER_USE_KEY),
                     in: $in,
                     properties: $properties,
                     context: $context
@@ -677,7 +682,6 @@ class SwaggerGeneratorService
                 );
             }
         }
-
 
         return $this->parseParameter($parameter, $context);
     }
