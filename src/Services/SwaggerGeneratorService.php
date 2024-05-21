@@ -572,24 +572,11 @@ class SwaggerGeneratorService
     protected function addParameters(array $properties, string $context, array &$component, string $in = Parameter::IN_QUERY): void
     {
         foreach ($properties as $property_name => $rules) {
-            if (str_ends_with($property_name, '.*')) {
+            if (str_contains($property_name, '*')) {
                 continue;
             }
 
-            $parameter = new Parameter(
-                parameter_name: $property_name,
-                rules: $this->transformRulesToArray($rules),
-                in: $in
-            );
-
-            if (isset($properties["$property_name.*"])) {
-                $parameter->setSubParameter(
-                    new Parameter(
-                        parameter_name: "$property_name.*",
-                        rules: $this->transformRulesToArray($properties["$property_name.*"]),
-                        in: $in
-                    ));
-            }
+            $parameter = $this->createParameter($property_name, $rules, $in, $properties, $context);
 
             $parsed =  $this->parseParameter($parameter, $context);
 
@@ -600,6 +587,55 @@ class SwaggerGeneratorService
 
             $component[] = $parsed->toArray();
         }
+    }
+
+    protected function createParameter(string $name, array $rules, string $in, array $other_properties, string $context): Parameter
+    {
+        $parameter = new Parameter(
+            parameter_name: $name,
+            rules: $this->transformRulesToArray($rules),
+            in: $in
+        );
+
+        if (isset($other_properties["$name.*"])) {
+            $parameter->setArrayType(
+                new Parameter(
+                    parameter_name: "$name.*",
+                    rules: $this->transformRulesToArray($other_properties["$name.*"]),
+                    in: $in
+                ));
+        }
+
+        $un_dotted_properties = Arr::undot($other_properties);
+
+        if(isset($un_dotted_properties['*'])) {
+            foreach ($un_dotted_properties as $sub_property_name => $sub_property_rules) {
+                $sub_parameter = $this->createParameter(
+                    name: $sub_property_name,
+                    rules: array_filter($sub_property_rules, function($key) {return is_numeric($key);}, ARRAY_FILTER_USE_KEY),
+                    in: $in,
+                    other_properties: $other_properties,
+                    context: $context
+                );
+
+                $sub_parameter = $this->parseParameter($sub_parameter, $context);
+
+                $parameter->addSubParameter(
+                    $sub_parameter
+                );
+            }
+        }
+
+        if (isset($other_properties["$name.*"])) {
+            $parameter->setArrayType(
+                new Parameter(
+                    parameter_name: "$name.*",
+                    rules: $this->transformRulesToArray($other_properties["$name.*"]),
+                    in: $in
+                ));
+        }
+
+        return $parameter;
     }
 
     protected function hasObjects(array $array): bool

@@ -23,6 +23,8 @@ class Schema implements Arrayable
     protected ?int $minLength = null;
     protected ?int $maxLength = null;
 
+    protected array $properties = [];
+
     public function __construct(protected string $type)
     {
     }
@@ -104,5 +106,20 @@ class Schema implements Arrayable
     public function setMaxLength(?int $maxLength): void
     {
         $this->maxLength = $maxLength;
+    }
+
+    public function getProperties(): array
+    {
+        return $this->properties;
+    }
+
+    public function setProperties(array $properties): void
+    {
+        $this->properties = $properties;
+    }
+
+    public function addProperty(Parameter $property): void
+    {
+        $this->properties[$property->getName()] = $property->getSchema();
     }
 }

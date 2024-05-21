@@ -24,10 +24,15 @@ class Parameter implements Arrayable
     protected ?string $description = null;
     protected ?string $style = null;
     protected ?bool $explode = null;
-    protected ?bool $required = null;
+    protected null|bool|array $required = null;
     protected ?bool $nullable = null;
     protected ?Schema $schema = null;
-    protected ?Parameter $sub_parameter = null;
+    protected ?Parameter $array_type = null;
+
+    /**
+     * @var Parameter[] $subParameters
+     */
+    protected array $subParameters = [];
 
     public function getExplode(): ?bool
     {
@@ -85,17 +90,17 @@ class Parameter implements Arrayable
         }
     }
 
-    public function getSubParameter(): ?Parameter
+    public function getArrayType(): ?Parameter
     {
-        return $this->sub_parameter;
+        return $this->array_type;
     }
 
-    public function setSubParameter(?Parameter $query_parameter): void
+    public function setArrayType(?Parameter $query_parameter): void
     {
-        $this->sub_parameter = $query_parameter;
+        $this->array_type = $query_parameter;
     }
 
-    public function setRequired(?bool $required): void
+    public function setRequired(bool|array|null $required): void
     {
         $this->required = $required;
     }
@@ -115,9 +120,10 @@ class Parameter implements Arrayable
         $array = $this->defaultToArray();
 
         unset(
-            $array['sub_parameter'],
+            $array['array_type'],
             $array['parameter_name'],
-            $array['rules']
+            $array['rules'],
+            $array['sub_parameters']
         );
 
         return $array;
@@ -131,5 +137,20 @@ class Parameter implements Arrayable
     public function setDescription(?string $description): void
     {
         $this->description = $description;
+    }
+
+    public function getSubParameters(): array
+    {
+        return $this->subParameters;
+    }
+
+    public function setSubParameters(array $subParameters): void
+    {
+        $this->subParameters = $subParameters;
+    }
+
+    public function addSubParameter(Parameter $parameter): void
+    {
+        $this->subParameters[] = $parameter;
     }
 }

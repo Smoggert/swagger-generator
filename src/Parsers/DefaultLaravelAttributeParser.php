@@ -26,6 +26,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
             Schema::ARRAY_TYPE => $this->handleArray($query_parameter),
             Schema::BOOLEAN_TYPE => $this->handleBoolean($query_parameter),
             Schema::INTEGER_TYPE => $this->handleInteger($query_parameter),
+            Schema::OBJECT_TYPE => $type->handleObject($query_parameter),
             default => $this->handleString($query_parameter)
         };
 
@@ -87,6 +88,16 @@ class DefaultLaravelAttributeParser implements ParsesParameter
         $schema->setMaximum($this->findMaximum($query_parameter->getRules()));
 
         $query_parameter->setSchema($schema);
+    }
+
+    protected function handleObject(Parameter $parameter): void
+    {
+        $schema = new Schema(Schema::OBJECT_TYPE);
+
+        foreach ($parameter->getSubParameters() as $sub_parameter) {
+            $schema->addProperty($sub_parameter);
+        }
+        $parameter->setSchema($schema);
     }
 
     protected function setDefaultPhPArray(Parameter $parameter): void

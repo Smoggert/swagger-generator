@@ -10,7 +10,7 @@ trait ParsesLaravelRules
 {
     protected function getEnumeratedValues(Parameter $parameter): ?array
     {
-        $rules = $parameter->getSubParameter()?->getRules();
+        $rules = $parameter->getArrayType()?->getRules();
 
         return $rules ? $this->getEnumFromRule($rules) : null;
     }
