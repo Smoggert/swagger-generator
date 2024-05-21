@@ -6,5 +6,5 @@ use Smoggert\SwaggerGenerator\SwaggerDefinitions\Parameter;
 
 interface ParsesParameter
 {
-    public function __invoke(Parameter $query_parameter, string $context): Parameter;
+    public function __invoke(Parameter $parameter, string $context): Parameter;
 }

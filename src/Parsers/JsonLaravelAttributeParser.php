@@ -2,14 +2,15 @@
 
 namespace Smoggert\SwaggerGenerator\Parsers;
 
+use Illuminate\Validation\Rules\In;
 use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
 use Smoggert\SwaggerGenerator\Interfaces\ParsesParameter;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\JsonParameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Parameter;
-use Smoggert\SwaggerGenerator\SwaggerDefinitions\QueryParameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Schema;
 use Smoggert\SwaggerGenerator\Traits\ParsesLaravelRules;
 
-class QueryLaravelAttributeParser implements ParsesParameter
+class JsonLaravelAttributeParser implements ParsesParameter
 {
     use ParsesLaravelRules;
     /**
@@ -17,21 +18,41 @@ class QueryLaravelAttributeParser implements ParsesParameter
      */
     public function __invoke(Parameter $parameter, string $context): Parameter
     {
-        if(! $parameter instanceof QueryParameter) {
-            return $parameter;
+        if(! $parameter instanceof JsonParameter) {
+            return $parameter;    
+        }
+        
+        $rules = $parameter->getRules();
+
+        $parameter->setNullable($this->isNullable($rules));
+
+        if (! $this->hasObjects($rules)) {
+            if ($this->hasSubParameters($rules)) {
+                $property = [
+                    'type' => 'object',
+                    'required' => $this->getRequiredParameters($property_rule),
+                    'properties' => $this->getProperties($property_rule),
+                ];
+            } else {
+                $type = $this->getPropertyType($property_rule);
+                $property = [
+                    'type' => $type,
+                ];
+
+                if ($type === 'string' && ($enum = $this->getEnumFromRules($property_rule))) {
+                    $property['enum'] = $enum;
+                }
+            }
+        } else {
+            $property = [
+                'type' => 'array',
+            ];
+
+            $this->addProperty('items', $property_rule['*'], $property);
         }
 
-        $type = $this->getPropertyType($parameter->getRules());
 
-        $parameter->setRequired($this->isRequestParameterRequired($parameter->getRules()));
-        $parameter->setNullable($this->isNullable($parameter->getRules()));
-
-        match ($type) {
-            Schema::ARRAY_TYPE => $this->handleArray($parameter),
-            Schema::STRING_TYPE => $this->handleString($parameter)
-        };
-
-        return $parameter;
+        $component[$property_name] = $property;
     }
 
     /**
@@ -53,6 +74,20 @@ class QueryLaravelAttributeParser implements ParsesParameter
         $parameter->setSchema(
             $schema
         );
+    }
+
+    protected function hasSubParameters(array $array): bool
+    {
+        if (empty($array)) {
+            return false;
+        }
+
+        return array_keys($array) !== range(0, count($array) - 1);
+    }
+
+    protected function hasObjects(array $array): bool
+    {
+        return isset($array['*']);
     }
 
     protected function handleString(Parameter $parameter): void
