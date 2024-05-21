@@ -22,6 +22,7 @@ trait ParsesLaravelRules
         if($parameter->hasSubParameters()) {
             return Schema::OBJECT_TYPE;
         }
+
         if (in_array('numeric', $rules)) {
             return Schema::NUMBER_TYPE;
         }

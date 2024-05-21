@@ -156,6 +156,6 @@ class Parameter implements Arrayable
 
     public function hasSubParameters(): bool
     {
-        return ! count($this->sub_parameters);
+        return ! empty($this->sub_parameters);
     }
 }
