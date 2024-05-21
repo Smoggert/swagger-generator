@@ -18,9 +18,13 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\In;
 use ReflectionClass;
 use ReflectionException;
+use ReflectionIntersectionType;
 use ReflectionMethod;
 use ReflectionType;
+use ReflectionUnionType;
+use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
 use Smoggert\SwaggerGenerator\Models\FakeModelForSwagger as Model;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\QueryParameter;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
@@ -49,6 +53,7 @@ class SwaggerGeneratorService
     protected string $version = '3.0.0';
     protected array $info = [];
     protected array $apis = [];
+    protected array $parsers = [];
 
     protected array $supported_formats = [
         'json',
@@ -114,6 +119,7 @@ class SwaggerGeneratorService
         $this->allowed_routes = $configuration['allowed'] ?? [];
         $this->excluded_routes = $configuration['excluded'] ?? [];
         $this->info = $configuration['info'] ?? [];
+        $this->parsers = $configuration['parsers'] ?? [];
     }
 
     /**
@@ -340,7 +346,7 @@ class SwaggerGeneratorService
             $query_parameters = [];
             foreach ($parameters as $parameter) {
                 if ($this->parameterHasType($parameter)) {
-                    $class = $parameter->getType() && ! $parameter->getType()->isBuiltin() ? new ReflectionClass($parameter->getType()->getName()) : null;
+                    $class = $this->getReflectionClass($parameter->getType());
                     if ($this->parameterClassIsFormRequest($class)) {
                         if ($this->isQueryRoute($route)) {
                             $this->parseJsonBodyParametersAsQueryParameters($class, $query_parameters);
@@ -419,11 +425,15 @@ class SwaggerGeneratorService
 
     /**
      * @throws ReflectionException
+     * @throws SwaggerGeneratorException
      */
     protected function parseJsonBodyParametersAsQueryParameters(ReflectionClass $class, array &$query_parameters): void
     {
-        $requestParameters = $class->newInstance()->rules();
-        $this->addQueryParameters($requestParameters, $query_parameters);
+        $context = $class->newInstance();
+
+        $requestParameters = $context->rules();
+
+        $this->addQueryParameters($requestParameters, get_class($context), $query_parameters);
     }
 
     /**
@@ -474,7 +484,7 @@ class SwaggerGeneratorService
      */
     protected function createResponseBodyFromJsonResource(?ReflectionType $type): ?string
     {
-        $reflection = (isset($type) && ! $type->isBuiltin()) ? new ReflectionClass($type->getName()) : null;
+        $reflection = $this->getReflectionClass($type);
 
         $resource_name = $reflection ? $this->trimResourcePath($type->getName()) : null;
 
@@ -496,6 +506,28 @@ class SwaggerGeneratorService
 
                 return $this->wrapString('#/components/schemas/'.$resource_name);
             }
+        }
+
+        return null;
+    }
+
+    /**
+     * @throws ReflectionException
+     */
+    protected function getReflectionClass(?ReflectionType $type): ?ReflectionClass
+    {
+        if (! $type) {
+            return null;
+        }
+
+        if ($type instanceof ReflectionUnionType || $type instanceof ReflectionIntersectionType) {
+            Log::info('Tried to parse a UnionType or IntersectionType. This is currently not supported.');
+
+            return null;
+        }
+
+        if (! $type->isBuiltin()) {
+            return new ReflectionClass($type->getName());
         }
 
         return null;
@@ -535,10 +567,31 @@ class SwaggerGeneratorService
         return $properties;
     }
 
-    protected function addQueryParameters(array $properties, array &$component): void
+    /**
+     * @throws SwaggerGeneratorException
+     */
+    protected function addQueryParameters(array $properties, string $context, array &$component): void
     {
-        foreach ($properties as $property_name => $property_info) {
-            $this->addQueryParameter($property_name, $property_info, $component, $properties);
+        foreach ($properties as $property_name => $rules) {
+            if (str_ends_with($property_name, '.*')) {
+                continue;
+            }
+
+            $parameter = new QueryParameter(
+                parameter_name: $property_name,
+                rules: $this->transformRulesToArray($rules),
+
+            );
+
+            if(isset($properties["$property_name.*"])) {
+                $parameter->setSubParameter(
+                    new QueryParameter(
+                        parameter_name: "$property_name.*",
+                        rules: $this->transformRulesToArray($properties["$property_name.*"])
+                ));
+            }
+
+            $component[] = $this->parseQueryParameter($parameter, $context);
         }
     }
 
@@ -600,51 +653,22 @@ class SwaggerGeneratorService
         return in_array('nullable', $property_rule);
     }
 
-    protected function addQueryParameter($property_name, $property_info, array &$parameters, array &$other_properties): void
+    /**
+     * @throws SwaggerGeneratorException
+     */
+    protected function parseQueryParameter(QueryParameter $query_parameter, string $context): array
     {
-        if (str_ends_with($property_name, '.*')) {
-            return;
-        }
-        $property_rule = $this->transformRulesToArray($property_info);
-
-        $type = $this->getPropertyType($property_info);
-        $name = ($type === 'array') ? $property_name.'[]' : $property_name;
-
-        $param = [
-            'name' => $name,
-            'in' => 'query',
-            'required' => $this->isRequestParameterRequired($property_rule),
-            'nullable' => $this->isNullable($property_rule),
-        ];
-
-        if ($type === 'array') {
-            $param['style'] = 'form';
-            $param['explode'] = true;
-            $param['schema'] = [
-                'type' => $type,
-                'items' => [
-                    'type' => 'string',
-                ],
-            ];
-
-            $enum = $this->findSubProperties($property_name, $other_properties);
-
-            if (! empty($enum)) {
-                $param['schema']['items']['enum'] = $enum;
+        foreach ($this->parsers as $parser_class) {
+            if (! class_exists($parser_class)) {
+                throw new SwaggerGeneratorException("Parser configuration [$parser_class] invalid.");
             }
+
+            $parser = new $parser_class;
+
+            $query_parameter = $parser($query_parameter, $context);
         }
 
-        $parameters[] = $param;
-    }
-
-    protected function findSubProperties(string $property_name, array &$other_properties): array
-    {
-        $subs = [];
-        if (key_exists("{$property_name}.*", $other_properties)) {
-            $subs = $this->getEnumFromRule($other_properties["{$property_name}.*"]);
-        }
-
-        return $subs;
+        return $query_parameter->toArray();
     }
 
     protected function getEnumFromRule($rules): array
@@ -654,7 +678,7 @@ class SwaggerGeneratorService
         }
 
         foreach ($rules as $rule) {
-            if (is_object($rule) && get_class($rule) === In::class) {
+            if ($rule instanceof In) {
                 return explode(',', str_replace(['in:', '"'], '', (string) $rule));
             }
         }
@@ -747,7 +771,7 @@ class SwaggerGeneratorService
      */
     public function getStatusCode(?ReflectionType $type): string
     {
-        $reflection = (isset($type) && ! $type->isBuiltin()) ? new ReflectionClass($type->getName()) : null;
+        $reflection = $this->getReflectionClass($type);
         $response_name = $reflection ? $this->trimResourcePath($type->getName()) : null;
 
         if (isset($response_name)) {
@@ -803,7 +827,7 @@ class SwaggerGeneratorService
             $path_name = $this->getRouteName($route);
             $paths[$path_name][$verb] = $path;
         } catch (Throwable $exception) {
-            Log::info($exception->getMessage().' :'.$this->getRouteName($route), $exception->getTrace());
+            Log::error($exception->getMessage().' :'.$this->getRouteName($route));
         }
     }
 
