@@ -42,7 +42,8 @@ class DefaultLaravelAttributeParser implements ParsesParameter
         $this->setDefaultPhPArray($parameter);
 
         $schema = new Schema(Schema::ARRAY_TYPE);
-        $array_values = new Schema(Schema::STRING_TYPE);
+
+        $array_values = $parameter->getArrayType()->getSchema();
 
         $array_values->setEnum($this->getEnumeratedValues($parameter));
 
