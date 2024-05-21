@@ -80,7 +80,9 @@ class Parameter implements Arrayable
 
     protected function setArrayName(): void
     {
-        $this->name = $this->parameter_name.'[]';
+        if($this->in === self::IN_QUERY){
+            $this->name = $this->parameter_name.'[]';
+        }
     }
 
     public function getSubParameter(): ?Parameter
