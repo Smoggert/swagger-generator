@@ -1,18 +1,16 @@
 # Swagger-generator
 
-!! This is a Work in Progress !!
+Swagger-generator is a package for Laravel that produces open-api 3.1.0 spec documentation based on Form Requests and Json Resources.
 
-Swagger-generator is a package for Laravel that produces open-api 3.0.0 spec documentation based on Form Requests and Json Resources.
-It is currently in pre-alpha or something among those lines..
+I'm mostly writing this so I can stop using 50000 lines of phpdoc code to document our api.
 
 ## Installation
 
 You can place this in require-dev and just run the command during deploy/dev. No need to have this package on production.
-```json
-    "require-dev": {
-        "smoggert/swagger-generator": "v3.0.0"
-    }
+```bash
+    composer require smoggert/swagger-generator
 ```
+
 ## !! Prerequisits !!
 The swagger generator looks through your code based on its controller function's return values and typed arguments. If you do no supply any it won't find any.
 The package does not parse PhPDocs. The entire reason for this package is to avoid PhpDocs.
@@ -39,8 +37,7 @@ Available in json-format.
 ```
 
 ## Contributing
-Pull requests are currently not welcome. 
-I'm mostly writing this so I can stop using 500 lines of phpdoc code to document our api.
+Open for feature requests if accompanied with some effort from the requester.
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
