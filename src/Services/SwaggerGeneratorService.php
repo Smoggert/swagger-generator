@@ -672,7 +672,7 @@ class SwaggerGeneratorService
                 }
 
                 $sub_parameter = $this->createParameter(
-                    name: "$name.*.$sub_property_name",
+                    name: "$name.$sub_property_name",
                     rules: array_filter($sub_property_rules, function ($key) {
                         return is_numeric($key);
                     }, ARRAY_FILTER_USE_KEY),
