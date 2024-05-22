@@ -34,11 +34,6 @@ class Parameter implements Arrayable
      */
     protected array $sub_parameters = [];
 
-    public function getExplode(): ?bool
-    {
-        return $this->explode;
-    }
-
     public function getRules(): array
     {
         return $this->rules;
@@ -144,11 +139,6 @@ class Parameter implements Arrayable
         return $this->sub_parameters;
     }
 
-    public function setSubParameters(array $sub_parameters): void
-    {
-        $this->sub_parameters = $sub_parameters;
-    }
-
     public function addSubParameter(Parameter $parameter): void
     {
         $this->sub_parameters[] = $parameter;
@@ -157,5 +147,10 @@ class Parameter implements Arrayable
     public function hasSubParameters(): bool
     {
         return ! empty($this->sub_parameters);
+    }
+
+    public function getIn(): string
+    {
+        return $this->in;
     }
 }

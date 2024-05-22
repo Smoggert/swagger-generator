@@ -70,10 +70,14 @@ class DefaultLaravelAttributeParser implements ParsesParameter
      */
     protected function handleBoolean(Parameter $parameter): void
     {
-        $schema = new Schema(Schema::INTEGER_TYPE);
+        $is_not_json = $parameter->getIn() !== Parameter::IN_BODY;
 
-        $schema->setMinimum(0);
-        $schema->setMaximum(1);
+        $schema = new Schema($is_not_json ? Schema::INTEGER_TYPE : Schema::BOOLEAN_TYPE);
+
+        if($is_not_json) {
+            $schema->setMinimum(0);
+            $schema->setMaximum(1);
+        }
 
         $parameter->setSchema($schema);
     }

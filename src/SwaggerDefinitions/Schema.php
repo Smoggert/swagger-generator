@@ -24,6 +24,7 @@ class Schema implements Arrayable
     protected ?int $maximum = null;
     protected ?int $minLength = null;
     protected ?int $maxLength = null;
+    protected ?string $format = null;
     protected string|array|null $example = null;
 
     protected ?PropertiesCollection $properties = null;
@@ -132,5 +133,15 @@ class Schema implements Arrayable
     public function setExample(string|array|null $example): void
     {
         $this->example = $example;
+    }
+
+    public function getFormat(): ?string
+    {
+        return $this->format;
+    }
+
+    public function setFormat(?string $format): void
+    {
+        $this->format = $format;
     }
 }
