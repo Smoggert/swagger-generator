@@ -499,6 +499,7 @@ class SwaggerGeneratorService
 
         if (! isset($this->schemas[$requestName])) {
             $properties = [];
+
             $this->parseFormRequest($class, $properties, Parameter::IN_BODY);
 
             $schema = [

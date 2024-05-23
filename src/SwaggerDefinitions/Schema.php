@@ -25,6 +25,7 @@ class Schema implements Arrayable
     protected ?int $minLength = null;
     protected ?int $maxLength = null;
     protected ?string $format = null;
+    protected ?array $required = null;
     protected string|array|null $example = null;
 
     protected ?PropertiesCollection $properties = null;
@@ -115,6 +116,11 @@ class Schema implements Arrayable
         $this->properties = $properties;
     }
 
+    public function setRequired(array $required): void
+    {
+        $this->required = $required;
+    }
+
     public function getDescription(): ?string
     {
         return $this->description;
@@ -143,5 +149,10 @@ class Schema implements Arrayable
     public function setFormat(?string $format): void
     {
         $this->format = $format;
+    }
+
+    public function getRequired(): ?array
+    {
+        return $this->required;
     }
 }

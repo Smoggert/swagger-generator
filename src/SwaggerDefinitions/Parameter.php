@@ -24,7 +24,7 @@ class Parameter implements Arrayable
     protected ?string $description = null;
     protected ?string $style = null;
     protected ?bool $explode = null;
-    protected null|bool|array $required = null;
+    protected ?bool $required = null;
     protected ?bool $nullable = null;
     protected ?Schema $schema = null;
     protected ?Parameter $array_type = null;
@@ -95,7 +95,7 @@ class Parameter implements Arrayable
         $this->array_type = $query_parameter;
     }
 
-    public function setRequired(bool|array|null $required): void
+    public function setRequired(?bool $required): void
     {
         $this->required = $required;
     }
