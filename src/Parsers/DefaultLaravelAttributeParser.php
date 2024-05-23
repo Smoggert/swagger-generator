@@ -104,11 +104,12 @@ class DefaultLaravelAttributeParser implements ParsesParameter
         foreach ($parameter->getSubParameters() as $sub_parameter) {
             $sub_parameter->getSchema()->setDescription($sub_parameter->getDescription());
             $properties->add(
-                $sub_parameter->getName(), $sub_parameter->getSchema()
+                $sub_parameter->getName(), $sub_parameter->getSchema(), $sub_parameter->getRequired()
             );
         }
 
         $schema->setProperties($properties);
+        $schema->setRequired($properties->getRequired());
 
         $parameter->setSchema($schema);
     }
