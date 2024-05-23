@@ -74,7 +74,7 @@ class DefaultLaravelAttributeParser implements ParsesParameter
 
         $schema = new Schema($is_not_json ? Schema::INTEGER_TYPE : Schema::BOOLEAN_TYPE);
 
-        if($is_not_json) {
+        if ($is_not_json) {
             $schema->setMinimum(0);
             $schema->setMaximum(1);
         }

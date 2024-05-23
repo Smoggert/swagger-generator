@@ -10,7 +10,7 @@ class Content implements Arrayable
 
     public function setJsonSchema(string $json_schema): void
     {
-        $this->schemas[ 'application/json'] = $json_schema;
+        $this->schemas['application/json'] = $json_schema;
     }
 
     public function seFormUrlEncodedSchema(string $form_url_encoded_schema): void
