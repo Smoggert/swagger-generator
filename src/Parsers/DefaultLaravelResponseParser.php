@@ -19,11 +19,11 @@ class DefaultLaravelResponseParser implements ParsesResponse
      */
     public function __invoke(?Schema $schema, ReflectionClass $response): ?Schema
     {
-        if (!$response->getName()) {
+        if (! $response->getName()) {
             return null;
         }
 
-        if (!$this->isJsonResource($response)) {
+        if (! $this->isJsonResource($response)) {
             return null;
         }
 
@@ -42,7 +42,7 @@ class DefaultLaravelResponseParser implements ParsesResponse
 
     protected function getProperties(array $parameters): ?PropertiesCollection
     {
-        if(empty($parameters)) {
+        if (empty($parameters)) {
             return null;
         }
 

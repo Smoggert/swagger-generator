@@ -13,7 +13,7 @@ class PropertiesCollection implements Arrayable
     {
         $this->properties[$name] = $schema;
 
-        if($required) {
+        if ($required) {
             $this->required[] = $name;
         }
     }
