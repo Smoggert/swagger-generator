@@ -797,7 +797,7 @@ class SwaggerGeneratorService
         ];
     }
 
-    protected function hasSchema(string $schema_key)
+    protected function hasSchema(string $schema_key): bool
     {
         return isset($this->schemas[$schema_key]);
     }
