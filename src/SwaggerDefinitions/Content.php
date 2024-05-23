@@ -15,9 +15,9 @@ class Content implements Arrayable
         return [
             $this->content_type => [
                 'schema' => [
-                    '$ref' => $this->schema_reference
-                ]
-            ]
+                    '$ref' => $this->schema_reference,
+                ],
+            ],
         ];
     }
 }

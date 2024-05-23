@@ -23,10 +23,10 @@ use ReflectionUnionType;
 use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
 use Smoggert\SwaggerGenerator\Interfaces\ParsesParameter;
 use Smoggert\SwaggerGenerator\Interfaces\ParsesResponse;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\Content;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Parameter;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Request;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Response;
-use Smoggert\SwaggerGenerator\SwaggerDefinitions\Content;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Schema;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
@@ -60,12 +60,12 @@ class SwaggerGeneratorService
     protected array $apis = [];
 
     /**
-     * @var $parsers string[]
+     * @var string[]
      */
     protected array $parsers = [];
 
     /**
-     * @var $parsers string[]
+     * @var string[]
      */
     protected array $response_parsers = [];
 
@@ -520,7 +520,7 @@ class SwaggerGeneratorService
      */
     protected function createResponseBodyFromJsonResource(?ReflectionType $type): ?Schema
     {
-        if(! $type) {
+        if (! $type) {
             return null;
         }
 
@@ -538,7 +538,7 @@ class SwaggerGeneratorService
              */
             $parser = new $parser_class;
 
-            if(! $parser instanceof ParsesResponse) {
+            if (! $parser instanceof ParsesResponse) {
                 throw new SwaggerGeneratorException("Parser configuration [$parser_class] does not implement [ParsesResponse].");
             }
 
@@ -701,7 +701,7 @@ class SwaggerGeneratorService
 
             $parser = new $parser_class;
 
-            if(! $parser instanceof ParsesParameter) {
+            if (! $parser instanceof ParsesParameter) {
                 throw new SwaggerGeneratorException("Parser configuration [$parser_class] does not implement [ParsesParameter].");
             }
 
@@ -742,7 +742,7 @@ class SwaggerGeneratorService
 
         $response = $this->generateResponse($route);
 
-        if(! empty($response)) {
+        if (! empty($response)) {
             $responses = array_merge($responses, $response);
         }
 
@@ -757,7 +757,7 @@ class SwaggerGeneratorService
     {
         $method = $this->getRouteMethod($route);
 
-        if (!$method) {
+        if (! $method) {
             return [];
         }
 
@@ -767,13 +767,13 @@ class SwaggerGeneratorService
 
         $response_class_name = $reflection_class?->getName();
 
-        if (!$response_class_name) {
+        if (! $response_class_name) {
             return [];
         }
 
         $schema_name = $this->trimResourcePath($reflection_class->getName());
 
-        if (!$this->hasSchema($schema_name)) {
+        if (! $this->hasSchema($schema_name)) {
             $response_schema = $this->createResponseBodyFromJsonResource($reflection_type);
 
             if ($response_schema) {
@@ -787,7 +787,7 @@ class SwaggerGeneratorService
         );
 
         return [
-            $this->wrapString($this->getStatusCode($reflection_type)) => $response->toArray()
+            $this->wrapString($this->getStatusCode($reflection_type)) => $response->toArray(),
         ];
     }
 
@@ -795,8 +795,6 @@ class SwaggerGeneratorService
     {
         return isset($this->schemas[$schema_key]);
     }
-
-
 
     /**
      * @throws ReflectionException
