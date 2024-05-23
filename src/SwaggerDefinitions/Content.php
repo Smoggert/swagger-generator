@@ -6,18 +6,20 @@ use Illuminate\Contracts\Support\Arrayable;
 
 class Content implements Arrayable
 {
-    public function __construct(protected string $schema_reference, protected string $content_type = 'application/json')
+    protected array $schemas = [];
+
+    public function setJsonSchema(string $json_schema): void
     {
+        $this->schemas[ 'application/json'] = $json_schema;
+    }
+
+    public function seFormUrlEncodedSchema(string $form_url_encoded_schema): void
+    {
+        $this->schemas['application/x-www-form-urlencoded'] = $form_url_encoded_schema;
     }
 
     public function toArray(): array
     {
-        return [
-            $this->content_type => [
-                'schema' => [
-                    '$ref' => $this->schema_reference
-                ]
-            ]
-        ];
+        return $this->schemas;
     }
 }

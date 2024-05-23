@@ -444,7 +444,10 @@ class SwaggerGeneratorService
 
         $schema_reference = $this->createRequestBodyComponent($class);
 
-        $request = new Request(null, new Content($schema_reference));
+        $request_content = new Content();
+        $request_content->setJsonSchema($schema_reference);
+
+        $request = new Request(null, $request_content);
 
         $object['requestBody'] = $request->toArray();
     }
@@ -781,9 +784,12 @@ class SwaggerGeneratorService
             }
         }
 
+        $request_content = new Content();
+        $request_content->setJsonSchema($this->wrapString("#/components/schemas/{$schema_name}"));
+
         $response = new Response(
             'The request has been properly executed.',
-            new Content($this->wrapString("#/components/schemas/{$schema_name}"))
+            $request_content
         );
 
         return [
