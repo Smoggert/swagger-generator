@@ -4,8 +4,6 @@ namespace Smoggert\SwaggerGenerator\Services;
 
 use Exception;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\RouteCollection;
 use Illuminate\Routing\Router;
@@ -15,7 +13,6 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\In;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionIntersectionType;
@@ -24,8 +21,12 @@ use ReflectionParameter;
 use ReflectionType;
 use ReflectionUnionType;
 use Smoggert\SwaggerGenerator\Exceptions\SwaggerGeneratorException;
-use Smoggert\SwaggerGenerator\Models\FakeModelForSwagger as Model;
+use Smoggert\SwaggerGenerator\Interfaces\ParsesParameter;
+use Smoggert\SwaggerGenerator\Interfaces\ParsesResponse;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Parameter;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\Request;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\Response;
+use Smoggert\SwaggerGenerator\SwaggerDefinitions\Content;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Schema;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
@@ -57,7 +58,16 @@ class SwaggerGeneratorService
     protected string $version = '3.0.0';
     protected array $info = [];
     protected array $apis = [];
+
+    /**
+     * @var $parsers string[]
+     */
     protected array $parsers = [];
+
+    /**
+     * @var $parsers string[]
+     */
+    protected array $response_parsers = [];
 
     protected array $supported_formats = [
         'json',
@@ -123,6 +133,7 @@ class SwaggerGeneratorService
         $this->excluded_routes = $configuration['excluded'] ?? [];
         $this->info = $configuration['info'] ?? [];
         $this->parsers = $configuration['parsers'] ?? [];
+        $this->response_parsers = $configuration['response_parsers'] ?? [];
     }
 
     /**
@@ -401,19 +412,9 @@ class SwaggerGeneratorService
         return isset($class) && $class->isSubclassOf(FormRequest::class);
     }
 
-    protected function responseClassIsJsonResource(?ReflectionClass $class): bool
-    {
-        return isset($class) && $class->isSubclassOf(JsonResource::class);
-    }
-
     protected function responseClassIsBaseResponse(?ReflectionClass $class): bool
     {
         return isset($class) && $class->isSubclassOf(\Symfony\Component\HttpFoundation\Response::class);
-    }
-
-    protected function responseClassIsResourceCollection(?ReflectionClass $class): bool
-    {
-        return isset($class) && $class->isSubclassOf(ResourceCollection::class);
     }
 
     protected function parseUrlParameter(ReflectionParameter $reflection_parameter, array &$url_parameters): void
@@ -431,23 +432,21 @@ class SwaggerGeneratorService
         $url_parameters[] = $parameter->toArray();
     }
 
+    /**
+     * @throws ReflectionException
+     * @throws SwaggerGeneratorException
+     */
     protected function parseJsonBodyParameters(ReflectionClass $class, array &$object): void
     {
         if (empty($class->newInstance()->rules())) {
             return;
         }
 
-        $body = [
-            'content' => [
-                'application/json' => [
-                    'schema' => [
-                        '$ref' => $this->createRequestBodyComponent($class),
-                    ],
-                ],
-            ],
-        ];
+        $schema_reference = $this->createRequestBodyComponent($class);
 
-        $object['requestBody'] = $body;
+        $request = new Request(null, new Content($schema_reference));
+
+        $object['requestBody'] = $request->toArray();
     }
 
     /**
@@ -490,6 +489,10 @@ class SwaggerGeneratorService
         return $schemes;
     }
 
+    /**
+     * @throws ReflectionException
+     * @throws SwaggerGeneratorException
+     */
     protected function createRequestBodyComponent(ReflectionClass $class): string
     {
         $requestName = $this->trimRequestPath($class->getName());
@@ -498,13 +501,13 @@ class SwaggerGeneratorService
             $properties = [];
             $this->parseFormRequest($class, $properties, Parameter::IN_BODY);
 
-            $component = [
+            $schema = [
                 'type' => Schema::OBJECT_TYPE,
                 'required' => $this->getRequiredParameters($this->getRequestParameters($class)),
                 'properties' => $properties,
             ];
 
-            $this->schemas[$requestName] = $component;
+            $this->schemas[$requestName] = $schema;
         }
 
         return $this->wrapString('#/components/schemas/'.$requestName);
@@ -512,34 +515,36 @@ class SwaggerGeneratorService
 
     /**
      * @throws ReflectionException
+     * @throws SwaggerGeneratorException
      */
-    protected function createResponseBodyFromJsonResource(?ReflectionType $type): ?string
+    protected function createResponseBodyFromJsonResource(?ReflectionType $type): ?Schema
     {
-        $reflection = $this->getReflectionClass($type);
-
-        $resource_name = $reflection ? $this->trimResourcePath($type->getName()) : null;
-
-        if (isset($resource_name)) {
-            if ($this->responseClassIsJsonResource($reflection)) {
-                if ($this->responseClassIsResourceCollection($reflection)) {
-                    $parameters = $reflection->newInstance(new Collection([new Model()]))->toArray(request());
-                } else {
-                    $parameters = $reflection->newInstance(new Model())->toArray(request());
-                }
-
-                if (! isset($this->schemas[$resource_name])) {
-                    $component = [
-                        'type' => 'object',
-                        'properties' => $this->getPropertiesFromResource($parameters),
-                    ];
-                    $this->schemas[$resource_name] = $component;
-                }
-
-                return $this->wrapString('#/components/schemas/'.$resource_name);
-            }
+        if(! $type) {
+            return null;
         }
 
-        return null;
+        $reflection = $this->getReflectionClass($type);
+
+        $schema = null;
+
+        foreach ($this->response_parsers as $parser_class) {
+            if (! class_exists($parser_class)) {
+                throw new SwaggerGeneratorException("Parser configuration [$parser_class] invalid.");
+            }
+
+            /**
+             * @var $parser ParsesResponse
+             */
+            $parser = new $parser_class;
+
+            if(! $parser instanceof ParsesResponse) {
+                throw new SwaggerGeneratorException("Parser configuration [$parser_class] does not implement [ParsesResponse].");
+            }
+
+            $schema = $parser($schema, $reflection);
+        }
+
+        return $schema;
     }
 
     /**
@@ -579,23 +584,6 @@ class SwaggerGeneratorService
     protected function replaceSlashes(string $requestName): string
     {
         return str_replace('\\', '', $requestName);
-    }
-
-    protected function getPropertiesFromResource(array $parameters): array
-    {
-        return $this->getProperties($parameters, true);
-    }
-
-    protected function getProperties(array $parameters, bool $is_resource = false): array
-    {
-        $properties = [];
-        foreach ($parameters as $parameter_name => $parameter_info) {
-            if (! is_numeric($parameter_name)) {
-                $this->addProperty($parameter_name, $is_resource ? 'string' : $parameter_info, $properties);
-            }
-        }
-
-        return $properties;
     }
 
     /**
@@ -690,57 +678,9 @@ class SwaggerGeneratorService
         return $this->parseParameter($parameter, $context);
     }
 
-    protected function hasObjects(array $array): bool
-    {
-        return isset($array['*']);
-    }
-
-    protected function hasSubParameters(array $array): bool
-    {
-        if (empty($array)) {
-            return false;
-        }
-
-        return array_keys($array) !== range(0, count($array) - 1);
-    }
-
     protected function transformRulesToArray(string|array $rules): array
     {
         return is_string($rules) ? explode('|', $rules) : $rules;
-    }
-
-    protected function addProperty(string $property_name, $property_rule, &$component): void
-    {
-        $property_rule = $this->transformRulesToArray($property_rule);
-
-        if (! $this->hasObjects($property_rule)) {
-            if ($this->hasSubParameters($property_rule)) {
-                $property = [
-                    'type' => 'object',
-                    'required' => $this->getRequiredParameters($property_rule),
-                    'properties' => $this->getProperties($property_rule),
-                ];
-            } else {
-                $type = $this->getPropertyType($property_rule);
-                $property = [
-                    'type' => $type,
-                ];
-
-                if ($type === 'string' && ($enum = $this->getEnumFromRule($property_rule))) {
-                    $property['enum'] = $enum;
-                }
-            }
-        } else {
-            $property = [
-                'type' => 'array',
-            ];
-
-            $this->addProperty('items', $property_rule['*'], $property);
-        }
-
-        $property['nullable'] = $this->isNullable($property_rule);
-
-        $component[$property_name] = $property;
     }
 
     protected function isNullable(array $property_rule): bool
@@ -760,52 +700,14 @@ class SwaggerGeneratorService
 
             $parser = new $parser_class;
 
+            if(! $parser instanceof ParsesParameter) {
+                throw new SwaggerGeneratorException("Parser configuration [$parser_class] does not implement [ParsesParameter].");
+            }
+
             $query_parameter = $parser($query_parameter, $context);
         }
 
         return $query_parameter;
-    }
-
-    protected function getEnumFromRule($rules): array
-    {
-        if (is_string($rules)) {
-            $rules = explode('|', $rules);
-        }
-
-        foreach ($rules as $rule) {
-            if ($rule instanceof In) {
-                return explode(',', str_replace(['in:', '"'], '', (string) $rule));
-            }
-        }
-
-        return [];
-    }
-
-    protected function getPropertyType($rule): string
-    {
-        if (is_string($rule)) {
-            $rule = explode('|', $rule);
-        }
-
-        if (in_array('numeric', $rule)) {
-            return 'number';
-        }
-
-        if (in_array('boolean', $rule)) {
-            return 'boolean';
-        }
-
-        if (in_array('array', $rule)) {
-            return 'array';
-        }
-
-        if (in_array('integer', $rule) || in_array('int', $rule)) {
-            return 'integer';
-        }
-
-        // default to string !
-
-        return 'string';
     }
 
     protected function getRequiredParameters(array $parameters): array
@@ -827,6 +729,7 @@ class SwaggerGeneratorService
 
     /**
      * @throws ReflectionException
+     * @throws SwaggerGeneratorException
      */
     protected function getResponses(Route $route, string $verb): array
     {
@@ -836,30 +739,63 @@ class SwaggerGeneratorService
             $responses[$this->wrapString($key)] = $default_response;
         }
 
-        if ($method = $this->getRouteMethod($route)) {
-            $class_type = $this->getMethodReturnClass($method, $route);
+        $response = $this->generateResponse($route);
 
-            $response = [
-                'description' => 'The request has been properly executed.',
-            ];
-
-            $response_reference = $this->createResponseBodyFromJsonResource($class_type);
-
-            if (isset($response_reference)) {
-                $response['content'] = [
-                    'application/json' => [
-                        'schema' => [
-                            '$ref' => $response_reference,
-                        ],
-                    ],
-                ];
-            }
-
-            $responses[$this->wrapString($this->getStatusCode($class_type))] = $response;
+        if(! empty($response)) {
+            $responses = array_merge($responses, $response);
         }
 
         return $responses;
     }
+
+    /**
+     * @throws SwaggerGeneratorException
+     * @throws ReflectionException
+     */
+    protected function generateResponse(Route $route): array
+    {
+        $method = $this->getRouteMethod($route);
+
+        if (!$method) {
+            return [];
+        }
+
+        $reflection_type = $this->getMethodReturnClass($method, $route);
+
+        $reflection_class = $this->getReflectionClass($reflection_type);
+
+        $response_class_name = $reflection_class?->getName();
+
+        if (!$response_class_name) {
+            return [];
+        }
+
+        $schema_name = $this->trimResourcePath($reflection_class->getName());
+
+        if (!$this->hasSchema($schema_name)) {
+            $response_schema = $this->createResponseBodyFromJsonResource($reflection_type);
+
+            if ($response_schema) {
+                $this->schemas[$schema_name] = $response_schema->toArray();
+            }
+        }
+
+        $response = new Response(
+            'The request has been properly executed.',
+            new Content($this->wrapString("#/components/schemas/{$schema_name}"))
+        );
+
+        return [
+            $this->wrapString($this->getStatusCode($reflection_type)) => $response->toArray()
+        ];
+    }
+
+    protected function hasSchema(string $schema_key)
+    {
+        return isset($this->schemas[$schema_key]);
+    }
+
+
 
     /**
      * @throws ReflectionException

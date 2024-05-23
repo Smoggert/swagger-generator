@@ -6,13 +6,17 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Resources\Json\ResourceCollection;
 use Illuminate\Support\Collection;
 use ReflectionClass;
+use ReflectionException;
 use Smoggert\SwaggerGenerator\Interfaces\ParsesResponse;
-use Smoggert\SwaggerGenerator\Models\FakeModelForSwagger as Model;
+use Smoggert\SwaggerGenerator\Models\FakeModelForSwagger;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\PropertiesCollection;
 use Smoggert\SwaggerGenerator\SwaggerDefinitions\Schema;
 
 class DefaultLaravelResponseParser implements ParsesResponse
 {
+    /**
+     * @throws ReflectionException
+     */
     public function __invoke(?Schema $schema, ReflectionClass $response): ?Schema
     {
         if (!$response->getName()) {
@@ -23,7 +27,7 @@ class DefaultLaravelResponseParser implements ParsesResponse
             return null;
         }
 
-        $collects = $this->isResourceCollection($response) ? new Collection([new Model()]) : new Model();
+        $collects = $this->isResourceCollection($response) ? new Collection([new FakeModelForSwagger()]) : new FakeModelForSwagger();
 
         $parameters = $response->newInstance($collects)->toArray(request());
 
@@ -59,16 +63,5 @@ class DefaultLaravelResponseParser implements ParsesResponse
     protected function isResourceCollection(ReflectionClass $class): bool
     {
         return $class->isSubclassOf(ResourceCollection::class);
-    }
-
-    protected function trimResourcePath(string $requestName): string
-    {
-        //TODO :regex replace
-        return $this->replaceSlashes(str_replace('App\\Http\\Resources\\', '', $requestName));
-    }
-
-    protected function replaceSlashes(string $requestName): string
-    {
-        return str_replace('\\', '', $requestName);
     }
 }
